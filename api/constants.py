@@ -76,6 +76,18 @@ STACK_PUBLISHABLE_CLIENT_KEY = os.getenv("STACK_PUBLISHABLE_CLIENT_KEY")
 DOGRAH_MPS_SECRET_KEY = os.getenv("DOGRAH_MPS_SECRET_KEY", None)
 MPS_API_URL = os.getenv("MPS_API_URL", "https://services.dograh.com")
 DOGRAH_DEVOPS_SECRET = os.getenv("DOGRAH_DEVOPS_SECRET") or None
+
+# Voice AiLunaPro billing (Stripe). The whole module stays dormant unless a
+# secret key is set, so a deployment that bills elsewhere is unaffected.
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY") or None
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET") or None
+STRIPE_API_BASE = os.getenv("STRIPE_API_BASE", "https://api.stripe.com")
+# Name of the Stripe billing meter that receives platform minutes.
+STRIPE_METER_EVENT_NAME = os.getenv("STRIPE_METER_EVENT_NAME", "voice_minutes")
+# Minutes a trialing subscription may burn before calls are refused. Keeps a
+# free trial from running up model and telephony cost with no card behind it.
+STRIPE_TRIAL_MINUTE_CAP = int(os.getenv("STRIPE_TRIAL_MINUTE_CAP", "50"))
+
 ENABLE_PROMETHEUS_METRICS = (
     os.getenv("ENABLE_PROMETHEUS_METRICS", "false").lower() == "true"
 )

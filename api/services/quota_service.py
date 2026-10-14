@@ -21,6 +21,7 @@ from api.errors.failure import (
     classify_exception,
     log_failure,
 )
+from api.services.billing import check_organization_can_call
 from api.services.configuration.ai_model_configuration import (
     get_effective_ai_model_configuration_for_workflow,
 )
@@ -646,6 +647,22 @@ async def authorize_workflow_run_start(
             has_quota=False,
             error_code="workflow_not_found",
             error_message="Workflow not found",
+        )
+
+    # Subscription gate. No-ops unless this deployment bills through Stripe and
+    # the organization has reached checkout, so every other deployment keeps the
+    # credit path below unchanged.
+    billing_decision = await check_organization_can_call(organization_id)
+    if not billing_decision.allowed:
+        logger.info(
+            "Workflow start authorization denied for org {}: {}",
+            organization_id,
+            billing_decision.error_code,
+        )
+        return QuotaCheckResult(
+            has_quota=False,
+            error_code=billing_decision.error_code,
+            error_message=billing_decision.error_message,
         )
 
     try:

@@ -221,6 +221,13 @@ services:
       ENABLE_PROMETHEUS_METRICS: "${ENABLE_PROMETHEUS_METRICS:-false}"
       DOGRAH_DEVOPS_SECRET: "${DOGRAH_DEVOPS_SECRET:-}"
 
+      # Voice AiLunaPro subscription billing. Leave STRIPE_SECRET_KEY empty and
+      # the whole billing module stays dormant.
+      STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY:-}"
+      STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET:-}"
+      STRIPE_METER_EVENT_NAME: "${STRIPE_METER_EVENT_NAME:-voice_minutes}"
+      STRIPE_TRIAL_MINUTE_CAP: "${STRIPE_TRIAL_MINUTE_CAP:-50}"
+
       # Trust X-Forwarded-* headers from any peer so uvicorn honors nginx's
       # `X-Forwarded-Proto: https`. nginx runs as its own container and reaches
       # uvicorn from a Docker-network IP (not loopback), but uvicorn trusts only

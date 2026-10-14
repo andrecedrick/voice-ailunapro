@@ -1,6 +1,9 @@
 from loguru import logger
 from pipecat.utils.run_context import set_current_run_id
 
+from api.services.billing.usage_reporting import (
+    report_completed_workflow_run_to_stripe,
+)
 from api.services.telephony.external_pbx_writeback import (
     sync_external_pbx_call_record,
 )
@@ -41,6 +44,15 @@ async def process_workflow_completion(
     except Exception as e:
         logger.error(
             f"Error reporting platform usage for workflow {workflow_run_id}: {e}"
+        )
+
+    # Report the call's minutes to the Stripe billing meter. Runs after the
+    # integrations because QA can rewrite usage_info with a corrected duration.
+    try:
+        await report_completed_workflow_run_to_stripe(workflow_run_id)
+    except Exception as e:
+        logger.error(
+            f"Error reporting Stripe usage for workflow {workflow_run_id}: {e}"
         )
 
     # Deliberately last. The write-back reads the run's gathered context to

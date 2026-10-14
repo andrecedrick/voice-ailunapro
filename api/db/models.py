@@ -165,6 +165,9 @@ class OrganizationModel(Base):
         "OrganizationConfigurationModel", back_populates="organization"
     )
     api_keys = relationship("APIKeyModel", back_populates="organization")
+    billing = relationship(
+        "OrganizationBillingModel", back_populates="organization", uselist=False
+    )
 
 
 class APIKeyModel(Base):
@@ -815,6 +818,58 @@ class OrganizationUsageCycleModel(Base):
         ),
         Index("idx_usage_cycles_org_period", "organization_id", "period_end"),
     )
+
+
+class OrganizationBillingModel(Base):
+    """Stripe subscription state for one organization.
+
+    One row per organization that has ever reached checkout. Organizations with
+    no row are never gated and never reported: a deployment that does not set
+    STRIPE_SECRET_KEY behaves exactly as it did before this table existed.
+    """
+
+    __tablename__ = "organization_billing"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer, ForeignKey("organizations.id"), nullable=False, unique=True, index=True
+    )
+
+    stripe_customer_id = Column(String, nullable=True, unique=True, index=True)
+    stripe_subscription_id = Column(String, nullable=True, index=True)
+
+    # Mirrors the Stripe subscription status verbatim: trialing, active,
+    # past_due, canceled, unpaid, incomplete, incomplete_expired, paused.
+    status = Column(String, nullable=True, index=True)
+    plan_name = Column(String, nullable=True)
+
+    # Minutes the plan includes per period, read from the price metadata key
+    # `included_minutes`. Stripe applies the quota itself through the graduated
+    # metered price; this copy only drives what the customer is shown.
+    included_minutes = Column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
+
+    # Minutes burned while the subscription is trialing. Reset when the trial
+    # converts, so a renewed subscription never inherits the trial counter.
+    trial_minutes_used = Column(
+        Float, nullable=False, default=0.0, server_default=text("0")
+    )
+    trial_ends_at = Column(DateTime(timezone=True), nullable=True)
+    current_period_end = Column(DateTime(timezone=True), nullable=True)
+
+    # Last Stripe event applied, so an out-of-order webhook delivery cannot
+    # overwrite newer state with older state.
+    last_event_at = Column(DateTime(timezone=True), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+    organization = relationship("OrganizationModel", back_populates="billing")
 
 
 class CampaignModel(Base):
