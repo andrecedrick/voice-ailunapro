@@ -78,7 +78,7 @@ export type EventBannerEvent = {
   startsAt: string;
   /** ISO 8601 WITH offset. After this instant the bar retires itself. */
   endsAt: string;
-  /** Optional co-brand. Present: [Dograh] × [partner]. Absent: [Dograh]. */
+  /** Optional co-brand. Present: [Voice AiLunaPro] × [partner]. Absent: [Voice AiLunaPro]. */
   partner?: EventBannerPartner;
   /** PostHog `event` property on the `event_banner_clicked` capture. */
   analyticsId: string;

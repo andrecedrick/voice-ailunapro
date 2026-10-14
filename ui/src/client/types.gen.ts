@@ -1282,7 +1282,7 @@ export type CurrentUsageResponse = {
      */
     period_end: string;
     /**
-     * Used Dograh Tokens
+     * Used Voice AiLunaPro Tokens
      */
     used_dograh_tokens: number;
     /**
@@ -1356,7 +1356,7 @@ export type DailyUsageBreakdownResponse = {
      */
     total_cost_usd?: number | null;
     /**
-     * Total Dograh Tokens
+     * Total Voice AiLunaPro Tokens
      */
     total_dograh_tokens: number;
     /**
@@ -1382,7 +1382,7 @@ export type DailyUsageItem = {
      */
     cost_usd?: number | null;
     /**
-     * Dograh Tokens
+     * Voice AiLunaPro Tokens
      */
     dograh_tokens: number;
     /**
@@ -2237,7 +2237,7 @@ export type HttpApiConfig = {
     /**
      * Preset Parameters
      *
-     * Parameters injected by Dograh from fixed values or workflow context templates.
+     * Parameters injected by Voice AiLunaPro from fixed values or workflow context templates.
      */
     preset_parameters?: Array<PresetToolParameter> | null;
     /**
@@ -2333,7 +2333,7 @@ export type HttpTransferResolverConfig = {
     /**
      * Wait Message
      *
-     * Optional short message played while Dograh resolves routing.
+     * Optional short message played while Voice AiLunaPro resolves routing.
      */
     wait_message?: string | null;
     /**
@@ -2345,7 +2345,7 @@ export type HttpTransferResolverConfig = {
     /**
      * Preset Parameters
      *
-     * Parameters injected by Dograh from fixed values or workflow context templates.
+     * Parameters injected by Voice AiLunaPro from fixed values or workflow context templates.
      */
     preset_parameters?: Array<PresetToolParameter> | null;
 };
@@ -3181,7 +3181,7 @@ export type OrganizationPreferences = {
     /**
      * Disposition Mapping
      *
-     * Dograh disposition -> the code this organization uses for it. Applied when writing `gathered_context.mapped_call_disposition`, so webhooks, run filters, reports and external-PBX write-backs all read the organization's own vocabulary. Dispositions absent from the mapping pass through unchanged.
+     * Voice AiLunaPro disposition -> the code this organization uses for it. Applied when writing `gathered_context.mapped_call_disposition`, so webhooks, run filters, reports and external-PBX write-backs all read the organization's own vocabulary. Dispositions absent from the mapping pass through unchanged.
      */
     disposition_mapping?: {
         [key: string]: string;
@@ -3212,7 +3212,7 @@ export type OrganizationPreferencesResponse = {
     /**
      * Disposition Mapping
      *
-     * Dograh disposition -> the code this organization uses for it. Applied when writing `gathered_context.mapped_call_disposition`, so webhooks, run filters, reports and external-PBX write-backs all read the organization's own vocabulary. Dispositions absent from the mapping pass through unchanged.
+     * Voice AiLunaPro disposition -> the code this organization uses for it. Applied when writing `gathered_context.mapped_call_disposition`, so webhooks, run filters, reports and external-PBX write-backs all read the organization's own vocabulary. Dispositions absent from the mapping pass through unchanged.
      */
     disposition_mapping?: {
         [key: string]: string;
@@ -3465,7 +3465,7 @@ export type PlivoConfigurationRequest = {
 /**
  * PresetToolParameter
  *
- * A parameter injected by Dograh at runtime.
+ * A parameter injected by Voice AiLunaPro at runtime.
  */
 export type PresetToolParameter = {
     /**
@@ -5578,7 +5578,7 @@ export type TrafficVariantStats = {
  *
  * Most of how a handoff sounds is fixed: the caller hears a ringer while the
  * next agent is prepared. The handover line is configurable because it is
- * caller-facing and Dograh runs in more than one language, and so is whether
+ * caller-facing and Voice AiLunaPro runs in more than one language, and so is whether
  * the next agent opens with its greeting, because an agent that greets
  * callers on its own number should not re-introduce itself mid-conversation.
  */
@@ -5586,7 +5586,7 @@ export type TransferAgentConfig = {
     /**
      * Workflow Id
      *
-     * Id of the Dograh agent to transfer to. Must be in the same organization, and must not be a speech-to-speech agent.
+     * Id of the Voice AiLunaPro agent to transfer to. Must be in the same organization, and must not be a speech-to-speech agent.
      */
     workflow_id: number;
     /**
@@ -5666,7 +5666,7 @@ export type TransferCallConfig = {
     /**
      * Call Disposition
      *
-     * Optional disposition to record after a successful transfer. When omitted, Dograh records its provider-specific transfer default.
+     * Optional disposition to record after a successful transfer. When omitted, Voice AiLunaPro records its provider-specific transfer default.
      */
     call_disposition?: string | null;
     /**
@@ -5799,7 +5799,7 @@ export type TrunkListResponse = {
  *
  * ``settings`` is the provider's own trunk schema (validated on write against
  * ``ProviderSpec.trunk_settings_cls``). The provider-side identifier is
- * Dograh's bookkeeping and is not exposed.
+ * Voice AiLunaPro's bookkeeping and is not exposed.
  */
 export type TrunkResponse = {
     /**
@@ -6061,7 +6061,7 @@ export type UsageHistoryResponse = {
      */
     runs: Array<WorkflowRunUsageResponse>;
     /**
-     * Total Dograh Tokens
+     * Total Voice AiLunaPro Tokens
      */
     total_dograh_tokens: number;
     /**
@@ -7035,7 +7035,7 @@ export type WorkflowRunUsageResponse = {
      */
     created_at: string;
     /**
-     * Dograh Token Usage
+     * Voice AiLunaPro Token Usage
      */
     dograh_token_usage: number;
     /**
@@ -16011,9 +16011,9 @@ export type ActiveCallsApiV1HealthActiveCallsGetData = {
     body?: never;
     headers?: {
         /**
-         * X-Dograh-Devops-Secret
+         * X-Voice AiLunaPro-Devops-Secret
          */
-        'X-Dograh-Devops-Secret'?: string | null;
+        'X-Voice AiLunaPro-Devops-Secret'?: string | null;
     };
     path?: never;
     query?: never;
@@ -16046,9 +16046,9 @@ export type AutoscaleMetricApiV1HealthAutoscaleMetricGetData = {
     body?: never;
     headers?: {
         /**
-         * X-Dograh-Devops-Secret
+         * X-Voice AiLunaPro-Devops-Secret
          */
-        'X-Dograh-Devops-Secret'?: string | null;
+        'X-Voice AiLunaPro-Devops-Secret'?: string | null;
     };
     path?: never;
     query?: {

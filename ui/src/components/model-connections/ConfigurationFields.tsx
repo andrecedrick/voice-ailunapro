@@ -16,12 +16,12 @@ import { MODE_LABELS, ROLE_LABELS } from "./types";
 
 export type ConfigurationFieldsDensity = "full" | "compact";
 
-// Dograh manages its services; only these settings are the user's to change,
+// Voice AiLunaPro manages its services; only these settings are the user's to change,
 // listed in the order they are shown.
 const DOGRAH_FIELDS: [ServiceRole, string[]][] = [["tts", ["voice", "speed"]], ["stt", ["language", "language_hints"]], ["llm", ["model", "temperature"]]];
 const MODES: { value: ConfigurationEditorMode; description: string }[] = [
     { value: "realtime", description: "One speech-to-speech model listens and replies." },
-    { value: "dograh", description: "Dograh runs the transcriber, LLM and voice for you." },
+    { value: "dograh", description: "Voice AiLunaPro runs the transcriber, LLM and voice for you." },
     { value: "cascade", description: "Pick your own LLM, STT and TTS providers." },
 ];
 const SERVICE_TAB = "-mb-px h-auto min-w-0 flex-1 flex-col items-start gap-0.5 rounded-none border-0 border-b-2 border-transparent px-3 py-2.5 text-left sm:px-4 text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:border-primary dark:data-[state=active]:bg-transparent";
@@ -64,8 +64,8 @@ function ModeChoice({ value, onChange }: { value: ConfigurationEditorMode; onCha
 /**
  * The one editor for a model configuration spec.
  *
- * The mode comes first: Realtime, Dograh or BYOK. Dograh shows the few
- * settings Dograh leaves to the user. Realtime and BYOK show one tab per
+ * The mode comes first: Realtime, Voice AiLunaPro or BYOK. Voice AiLunaPro shows the few
+ * settings Voice AiLunaPro leaves to the user. Realtime and BYOK show one tab per
  * service, each naming its provider so the whole setup reads at a glance,
  * with the provider and its settings inside. Every provider list ends with
  * a way to add a provider in place.
@@ -186,9 +186,9 @@ export function ConfigurationFields({ configuration, catalog, connections, onCha
                 values={configuration[role]?.settings || {}} onChange={(name, value) => changeSetting(role, name, value, fullSchema)} />;
         })}
         <div className="space-y-1.5">
-            <Label htmlFor="dograh-provider-connection">Dograh account</Label>
+            <Label htmlFor="dograh-provider-connection">Voice AiLunaPro account</Label>
             <ProviderSelect id="dograh-provider-connection" required value={dograhValue} onValueChange={changeDograhConnection}
-                placeholder="Choose an account" addLabel="Add a Dograh account" onAdd={() => setAdding("dograh")}
+                placeholder="Choose an account" addLabel="Add a Voice AiLunaPro account" onAdd={() => setAdding("dograh")}
                 options={dograhConnections.map(connection => ({ value: connection.uuid, label: connection.name }))} />
         </div>
     </div>;
@@ -251,7 +251,7 @@ export function ConfigurationFields({ configuration, catalog, connections, onCha
             </TabsContent>)}
         </Tabs>}
         {adding && <AddProviderDialog open onOpenChange={open => { if (!open) setAdding(null); }} catalog={catalog}
-            title={adding === "dograh" ? "Add a Dograh account" : `Add ${ROLE_ARTICLES[adding]} ${ROLE_LABELS[adding]} provider`}
+            title={adding === "dograh" ? "Add a Voice AiLunaPro account" : `Add ${ROLE_ARTICLES[adding]} ${ROLE_LABELS[adding]} provider`}
             providerKeys={addProviderKeys(adding)} role={adding === "dograh" ? undefined : adding} onSaved={connectionAdded} />}
     </div>;
 }

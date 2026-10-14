@@ -7,7 +7,7 @@ import { applyModelPatch, customOverride, describeWorkflowModel, followOverride,
 
 const connection = (uuid: string, name: string, provider: string): ProviderConnection =>
     ({ uuid, name, provider, connection_settings: {}, configured_credentials: ["api_key"], is_active: true, revision: 1 });
-const connections = [connection("openai-a", "OpenAI prod", "openai"), connection("openai-b", "OpenAI backup", "openai"), connection("eleven", "ElevenLabs", "elevenlabs"), connection("dograh", "Dograh", "dograh")];
+const connections = [connection("openai-a", "OpenAI prod", "openai"), connection("openai-b", "OpenAI backup", "openai"), connection("eleven", "ElevenLabs", "elevenlabs"), connection("dograh", "Voice AiLunaPro", "dograh")];
 const cascade: ConfigurationSpec = {
     version: 3, mode: "pipeline",
     llm: { provider_connection_uuid: "openai-a", settings: { model: "gpt-4.1", temperature: 0.2 } },
@@ -116,7 +116,7 @@ describe("custom overrides", () => {
         expect(summarizeConfiguration(cascade, connections)).toBe("gpt-4.1 / Sophie");
         expect(summarizeConfiguration({ ...cascade, mode: "realtime", realtime: { provider_connection_uuid: "openai-a", settings: { model: "gpt-realtime", voice: "marin" } } }, connections)).toBe("gpt-realtime / marin");
         const managed: ConfigurationSpec = { version: 3, mode: "pipeline", llm: { provider_connection_uuid: "dograh", settings: {} }, stt: { provider_connection_uuid: "dograh", settings: {} }, tts: { provider_connection_uuid: "dograh", settings: { voice: "af_heart" } } };
-        expect(summarizeConfiguration(managed, connections)).toBe("Dograh / af_heart");
+        expect(summarizeConfiguration(managed, connections)).toBe("Voice AiLunaPro / af_heart");
         expect(summarizeConfiguration({ ...cascade, llm: { provider_connection_uuid: "openai-a", settings: {} }, tts: { provider_connection_uuid: "openai-a", settings: {} } }, connections)).toBe("OpenAI prod / default voice");
         expect(summarizeConfiguration(null, connections)).toBe("Not configured");
     });

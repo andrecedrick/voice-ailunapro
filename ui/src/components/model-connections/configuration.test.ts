@@ -82,7 +82,7 @@ describe("model connection editor settings", () => {
         expect(result).toHaveProperty("llm");
     });
 
-    it("preserves fallback rules between Cascade and Realtime and clears them for Dograh", () => {
+    it("preserves fallback rules between Cascade and Realtime and clears them for Voice AiLunaPro", () => {
         const available = [...connections, connection("dograh", "dograh")];
         const configured: ConfigurationSpec = { ...base, llm_fallback: { version: 1, rules: [{ condition: { type: "error" }, target: { provider_connection_uuid: "google", settings: {} } }] } };
         const realtime = configurationForMode("realtime", configured, catalog, available);

@@ -39,7 +39,7 @@ describe("LLM fallback editor", () => {
         fireEvent.change(screen.getByLabelText("Wait before starting fallback (ms)"), { target: { value: "750" } });
         fireEvent.change(screen.getByLabelText("Model"), { target: { value: "gpt-4.1-mini" } });
         fireEvent.click(screen.getByRole("switch", { name: "Request error" }));
-        // Give each rule its own external target; Dograh manages its own fallbacks.
+        // Give each rule its own external target; Voice AiLunaPro manages its own fallbacks.
         const selectors = screen.getAllByLabelText("Provider connection");
         fireEvent.keyDown(selectors[1], { key: "ArrowDown" });
         expect(screen.queryByRole("option", { name: /dograh/i })).toBeNull();

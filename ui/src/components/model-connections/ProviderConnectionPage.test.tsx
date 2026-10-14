@@ -15,8 +15,8 @@ vi.mock("./useModelConnections", () => ({ useModelConnections: vi.fn() }));
 vi.mock("@/context/OrgConfigContext", () => ({ useOrgConfig: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 
-const catalog: ModelConnectionCatalog = { services: { llm: { dograh: { title: "Dograh", credential_fields: { api_key: { title: "API key", anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }] } }, credential_required: ["api_key"], connection_fields: {}, settings_schema: { properties: {} } } } } };
-const connection: ProviderConnection = { uuid: "existing", name: "Dograh", provider: "dograh", is_active: true, revision: 3, connection_settings: {}, configured_credentials: ["api_key"] };
+const catalog: ModelConnectionCatalog = { services: { llm: { dograh: { title: "Voice AiLunaPro", credential_fields: { api_key: { title: "API key", anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }] } }, credential_required: ["api_key"], connection_fields: {}, settings_schema: { properties: {} } } } } };
+const connection: ProviderConnection = { uuid: "existing", name: "Voice AiLunaPro", provider: "dograh", is_active: true, revision: 3, connection_settings: {}, configured_credentials: ["api_key"] };
 const reload = vi.fn();
 const refreshConfig = vi.fn();
 

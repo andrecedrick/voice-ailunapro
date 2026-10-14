@@ -9,10 +9,10 @@ import type { ModelConnectionCatalog, ProviderConnection } from "./types";
 
 vi.mock("@/client/sdk.gen", () => ({ createProviderConnection: vi.fn(), updateProviderConnection: vi.fn() }));
 const catalog: ModelConnectionCatalog = { services: { llm: { dograh: {
-    title: "Dograh", credential_fields: { api_key: { title: "API key", anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }] } },
+    title: "Voice AiLunaPro", credential_fields: { api_key: { title: "API key", anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }] } },
     credential_required: ["api_key"], connection_fields: {}, settings_schema: { properties: {} },
 } } } };
-const existing: ProviderConnection = { uuid: "connection-id", name: "Dograh production", provider: "dograh", connection_settings: {}, configured_credentials: ["api_key"], revision: 2, is_active: true };
+const existing: ProviderConnection = { uuid: "connection-id", name: "Voice AiLunaPro production", provider: "dograh", connection_settings: {}, configured_credentials: ["api_key"], revision: 2, is_active: true };
 function editor(connection = existing, onSaved = vi.fn()) {
     return render(<ConnectionEditor catalog={catalog} connection={connection} onSaved={onSaved} />);
 }
@@ -41,10 +41,10 @@ describe("provider connection credentials", () => {
         editor();
         expect(screen.getByText("Configured")).toBeDefined();
         expect(screen.queryByLabelText("API key")).toBeNull();
-        fireEvent.change(screen.getByLabelText("Connection name"), { target: { value: "Dograh renamed" } });
+        fireEvent.change(screen.getByLabelText("Connection name"), { target: { value: "Voice AiLunaPro renamed" } });
         fireEvent.click(screen.getByRole("button", { name: "Save Connection" }));
         await waitFor(() => expect(updateProviderConnection).toHaveBeenCalledOnce());
-        expect(vi.mocked(updateProviderConnection).mock.calls[0][0]).toMatchObject({ path: { connection_uuid: "connection-id" }, body: { name: "Dograh renamed", revision: 2, credentials: {} } });
+        expect(vi.mocked(updateProviderConnection).mock.calls[0][0]).toMatchObject({ path: { connection_uuid: "connection-id" }, body: { name: "Voice AiLunaPro renamed", revision: 2, credentials: {} } });
     });
 
     it("sends only explicitly replaced credentials", async () => {

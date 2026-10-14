@@ -80,7 +80,7 @@ describe("model configuration pages", () => {
         expect(vi.mocked(updateNamedModelConfiguration).mock.calls[1][0]?.body?.revision).toBe(updated.revision);
     });
 
-    it("edits on a page and previews, cancels, and selects Dograh voices in a single dialog", async () => {
+    it("edits on a page and previews, cancels, and selects Voice AiLunaPro voices in a single dialog", async () => {
         render(<ModelConfigurationPage configurationUuid="sales" />);
         expect(screen.getByRole("heading", { name: "Edit Model Configuration" })).toBeDefined();
         expect(screen.queryByRole("dialog")).toBeNull();
@@ -109,7 +109,7 @@ describe("model configuration pages", () => {
         expect(screen.queryByRole("dialog")).toBeNull();
         if (duplicateUuid) expect((screen.getByLabelText("Configuration name") as HTMLInputElement).value).toBe("Sales (copy)");
         fireEvent.change(screen.getByLabelText("Configuration name"), { target: { value: "Managed Support" } });
-        selectOption("Dograh account", "Secondary");
+        selectOption("Voice AiLunaPro account", "Secondary");
         fireEvent.click(screen.getByRole("button", { name: "Save Configuration" }));
         await waitFor(() => expect(replace).toHaveBeenCalledWith("/model-configurations/new-configuration"));
         const body = vi.mocked(createNamedModelConfiguration).mock.calls[0][0]?.body;
@@ -158,7 +158,7 @@ it.each(["dograh", "cascade", "realtime"] as const)("guards the direct fallback 
     render(<LLMConfigurationPage configurationUuid="sales" />);
     expect(screen.getByRole("link", { name: "Back to model configuration" }).getAttribute("href")).toBe("/model-configurations/sales");
     if (mode === "dograh") {
-        expect(screen.getByRole("alert").textContent).toContain("unavailable in Dograh mode");
+        expect(screen.getByRole("alert").textContent).toContain("unavailable in Voice AiLunaPro mode");
         expect(screen.queryByRole("button", { name: "Save fallbacks" })).toBeNull();
     } else {
         expect(screen.getByRole("button", { name: "Save fallbacks" })).toBeDefined();

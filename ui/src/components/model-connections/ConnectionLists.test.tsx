@@ -138,7 +138,7 @@ describe("provider connection and model configuration lists", () => {
         fireEvent.click(screen.getByRole("button", { name: "Toggle Archived" }));
         expect((screen.getByRole("button", { name: "Restore" }) as HTMLButtonElement).disabled).toBe(true);
         expect(screen.getByText(/Restore this configuration/).textContent).toContain("provider connections");
-        expect(screen.getByText("Dograh · Primary")).toBeDefined();
+        expect(screen.getByText("Voice AiLunaPro · Primary")).toBeDefined();
     });
 
     it.each(["models", "providers"] as const)("shows newly archived %s in the archive section", async view => {

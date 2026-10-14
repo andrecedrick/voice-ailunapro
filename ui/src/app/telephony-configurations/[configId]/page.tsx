@@ -87,14 +87,14 @@ export default function TelephonyConfigurationDetailPage() {
   const [config, setConfig] = useState<TelephonyConfigurationDetail | null>(null);
   const webhookBaseUrl = resolveWebhookBaseUrl(appConfig?.tunnelUrl);
   const inboundWebhookUrl = `${webhookBaseUrl}${INBOUND_WEBHOOK_PATH}`;
-  // ARI only: Dograh generates the Stasis application name, so the dialplan
+  // ARI only: Voice AiLunaPro generates the Stasis application name, so the dialplan
   // line cannot be written until the configuration has been saved.
   const stasisAppName =
     typeof config?.credentials?.stasis_app_name === "string"
       ? config.credentials.stasis_app_name
       : "";
   const stasisDialplanLine = `same => n,Stasis(${stasisAppName})`;
-  // WhatsApp only: Meta verifies the webhook with a token Dograh generates on
+  // WhatsApp only: Meta verifies the webhook with a token Voice AiLunaPro generates on
   // save, and delivers calls to the provider's own route rather than the
   // shared inbound dispatcher — so the customer pastes this pair into Meta.
   const webhookVerifyToken =
@@ -367,7 +367,7 @@ export default function TelephonyConfigurationDetailPage() {
                     This configuration is disabled
                   </p>
                   <p className="text-muted-foreground">
-                    Dograh stopped reconnecting after repeated connection
+                    Voice AiLunaPro stopped reconnecting after repeated connection
                     failures
                     {config.inactive_reason ? `: ${config.inactive_reason}` : ""}.
                     Calls will not work until it is reconnected. Correct the
@@ -402,7 +402,7 @@ export default function TelephonyConfigurationDetailPage() {
               <p className="text-xs text-muted-foreground">
                 Add this line to your Asterisk <code>extensions.conf</code>, then run{" "}
                 <code>dialplan reload</code>. Until you do, calls reach Asterisk but never
-                arrive at Dograh.
+                arrive at Voice AiLunaPro.
               </p>
               <button
                 type="button"
@@ -425,7 +425,7 @@ export default function TelephonyConfigurationDetailPage() {
               <p className="text-xs text-muted-foreground">
                 Paste both into the app&apos;s webhook settings and verify, then
                 subscribe to the <code>calls</code> field. Until you do, calls to
-                your number never reach Dograh.
+                your number never reach Voice AiLunaPro.
               </p>
               {[
                 { label: "Callback URL", value: providerWebhookUrl },
