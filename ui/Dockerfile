@@ -50,6 +50,12 @@ ENV NEXT_TELEMETRY_DISABLED="1"
 # renders nothing without a URL. Set these to an AiLunaPro workspace to enable.
 ENV NEXT_PUBLIC_CHATWOOT_URL=""
 ENV NEXT_PUBLIC_CHATWOOT_TOKEN=""
+# BRAND: links to docs.dograh.com are hidden unless we publish our own docs
+# here (build with --build-arg NEXT_PUBLIC_DOCS_URL=https://docs.…). BRAND.md §6.
+ARG NEXT_PUBLIC_DOCS_URL=""
+ENV NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL
+# BRAND: blank = lead forms post to our own API (upstream: Dograh's backend).
+ENV NEXT_PUBLIC_ONBOARDING_API_URL=""
 ENV BACKEND_URL="http://api:8000"
 
 # Build the application with standalone mode

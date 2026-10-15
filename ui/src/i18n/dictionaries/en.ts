@@ -42,12 +42,12 @@ export const en = {
     settings: "Settings",
   },
   version: {
-    title: (ui: string, upstream: string) => `Voice AiLunaPro ${ui} · built on Dograh ${upstream}`,
+    title: (ui: string, upstream: string) => `Voice AiLunaPro ${ui} · engine ${upstream}`,
     update: "Update",
     updateTip: (latest: string, current: string) =>
-      `Dograh ${latest} is out (this build: ${current}) — see the release notes`,
+      `AiLunaPro ${latest} is out (this build: ${current}) — see the release notes`,
     latest: "Latest",
-    latestTip: "You're on the latest Dograh release",
+    latestTip: "You're on the latest AiLunaPro release",
   },
   topbar: {
     search: "Search screens and actions…",
@@ -174,6 +174,8 @@ export const en = {
   footer: {
     privacy: "Privacy",
     terms: "Terms",
+    support: "Support",
+    openSource: "Open source",
   },
 };
 

@@ -45,25 +45,26 @@ _MPS_UNREACHABLE_ERRORS = (
     httpx.ProxyError,
 )
 
+# BRAND: upstream sends customers to app.dograh.com. See BRAND.md.
 OSS_QUOTA_EXCEEDED_MESSAGE = (
-    "You have exhausted your trial credits. "
-    "Please sign up on app.dograh.com to create a "
-    "new service key and set up in your model configurations."
+    "You have used all your included AI credits. "
+    "Contact service@ailunapro.com to top up, "
+    "or connect your own provider keys in Models configurations."
 )
 
 HOSTED_QUOTA_EXCEEDED_MESSAGE = (
-    "You have exhausted your Dograh credits. "
+    "You have used all your AiLunaPro credits. "
     "Please purchase more credits from /billing "
     "or change providers in Models configurations."
 )
 
 OSS_HOSTED_KEY_QUOTA_EXCEEDED_MESSAGE = (
-    "The organization linked to this Dograh service key has insufficient credits. "
-    "Please add credits at app.dograh.com or change providers in Models configurations."
+    "The organization linked to this AiLunaPro service key has insufficient credits. "
+    "Contact service@ailunapro.com to top up, or change providers in Models configurations."
 )
 
 SERVICE_TOKEN_ORG_MISMATCH_MESSAGE = (
-    "The Dograh service token being used is created from another account. "
+    "The AiLunaPro service token being used is created from another account. "
     "Please create a new service token from the Developers tab and use it in "
     "your model configuration."
 )

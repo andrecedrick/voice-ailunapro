@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      // BRAND: the widget's public name. Same file as /embed/dograh-widget.js,
+      // which stays served for embeds already pasted on customer sites.
+      { source: "/embed/ailunapro-widget.js", destination: "/embed/dograh-widget.js" },
       {
         source: "/ingest/static/:path*",
         destination: "https://us-assets.i.posthog.com/static/:path*",

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from api.routes.agent_stream import router as agent_stream_router
 from api.routes.auth import router as auth_router
+from api.routes.ailunapro_leads import router as ailunapro_leads_router
 from api.routes.billing_stripe import router as billing_stripe_router
 from api.routes.campaign import router as campaign_router
 from api.routes.credentials import router as credentials_router
@@ -55,6 +56,8 @@ router.include_router(s3_router)
 router.include_router(service_keys_router)
 router.include_router(organization_usage_router)
 router.include_router(billing_stripe_router)
+# BRAND: lead/onboarding forms come to us, not Dograh. See BRAND.md §6.
+router.include_router(ailunapro_leads_router)
 router.include_router(reports_router)
 router.include_router(webrtc_signaling_router)
 router.include_router(turn_credentials_router)

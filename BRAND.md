@@ -106,7 +106,10 @@ git merge upstream/main            # conflicts, if any, land only in section 2
 # 3. Move our own version forward
 #    ui/src/lib/productVersion.ts  →  VOICE_VERSION
 
-# 4. Look at it before shipping
+# 4. Catch the new upstream strings (section 6)
+node scripts/i18n/extract-ui-strings.cjs   # then translate what is new
+
+# 5. Look at it before shipping
 cd ui && npm run build && npm run dev
 ```
 
@@ -124,19 +127,16 @@ If step 2 fails, do not ship. Re-apply the named patch from this table — the
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` | Turns on sign-up email confirmation. Unset = accounts are confirmed on the spot, as before. |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Adds the Cloudflare challenge to sign-up. |
 | `BILLING_EXEMPT_ORG_IDS` | Workspaces that call without a subscription (yours). |
+| `ENABLE_TELEMETRY=false` | Keeps upstream's PostHog off on stacks run from the upstream compose file (ours defaults to off). |
+
+Build-time (UI image): `NEXT_PUBLIC_DOCS_URL` sends documentation links to our
+own docs instead of hiding them; `NEXT_PUBLIC_ONBOARDING_API_URL` is where lead
+forms post (blank = our own `/api/v1/ailunapro/leads`, emailed to `LEADS_NOTIFY_EMAIL`).
 
 ## 5. What is deliberately NOT done
 
-- **Only the shell is translated.** Sidebar, top bar, command palette,
-  overview, sign-in, sign-up and the billing notice follow the language menu.
-  Deeper Dograh screens (workflow editor, telephony forms, …) stay in English,
-  which is also the default, so a visitor who never touches the menu sees one
-  language everywhere. Extending a screen means moving its strings into
-  `src/i18n/dictionaries/*` — and every such screen is another upstream file
-  to patch, so do it screen by screen, where customers actually spend time.
-- **Documentation links still point at docs.dograh.com** on several deep
-  screens (tools, files, telephony, recordings, settings). There is no
-  AiLunaPro docs site to point them at yet.
+- **Documentation links are hidden, not rewritten.** There is no AiLunaPro
+  docs site yet; set `NEXT_PUBLIC_DOCS_URL` once there is (section 6).
 - **No dashboard figures are invented.** The template shipped with mock numbers
   (1,284 calls, 87.4% answer rate). The overview renders em dashes until the
   real usage endpoint answers, and the bar chart is drawn from
@@ -145,3 +145,38 @@ If step 2 fails, do not ship. Re-apply the named patch from this table — the
   `ui/src/components/model-connections/` it is a protocol value carried in API
   payloads, not a label. Renaming it would break the backend contract. The
   user-facing strings around it already say Voice AiLunaPro.
+
+---
+
+## 6. Whole-app translation and rebranding (DOM localizer)
+
+Upstream screens are hard-coded English. Patching hundreds of upstream files
+would make every upgrade a conflict, so the translation lives beside them:
+
+| Piece | Role |
+| --- | --- |
+| `scripts/i18n/extract-ui-strings.cjs` | Reads `ui/src` (TypeScript AST) and writes every visible English text to `ui/src/i18n/catalog/source.json` — exact strings plus `{0}` patterns for template literals. |
+| `ui/src/i18n/catalog/<locale>.json` | Translations of that source (fr, es, de, it, pt, ru, zh). Entries identical to English are not stored. |
+| `ui/src/i18n/catalog/runtime.ts` | Lookup, `{0}` pattern filling, "Dograh" → "AiLunaPro", dograh.com link policy. Pure, unit-tested. |
+| `ui/src/components/brand/DomLocalizer.tsx` | Mounted once in `app/layout.tsx`. Rewrites text nodes and `placeholder` / `title` / `aria-label` / `alt` after React renders, follows re-renders through a MutationObserver, restores English when the menu goes back to EN. Never touches `code`, `pre`, inputs, editors or `[data-no-translate]`. |
+
+Rules it applies in every language: "Dograh" becomes "AiLunaPro" (also in API
+error messages); links to `*.dograh.com` are hidden, or sent to
+`NEXT_PUBLIC_DOCS_URL` for docs pages.
+
+After an upstream merge: run the extractor, translate the strings that are new
+in `source.json` (same glossary, keep `{0}`), commit. Untranslated strings
+simply show in English — nothing breaks.
+
+Other upstream patches made for the same request:
+
+| File | Patch | If lost |
+| --- | --- | --- |
+| `ui/src/components/lead-forms/onboardingServiceClient.ts` | No default URL: upstream posts enterprise / expert / onboarding forms to `api-leads.dograh.com`. Without `NEXT_PUBLIC_ONBOARDING_API_URL` they go to our `POST /api/v1/ailunapro/leads` (`api/routes/ailunapro_leads.py`, OURS), which emails `LEADS_NOTIFY_EMAIL` (default service@ailunapro.com). | Prospects and new sign-ups' answers leave for a third party. |
+| `docker-compose.yaml` | Telemetry off, no upstream PostHog key. | Usage of our customers is reported to Dograh's PostHog. |
+| `api/services/quota_service.py` | Out-of-credit messages point to service@ailunapro.com. | Customers are told to buy on app.dograh.com. |
+| `api/services/configuration/registry.py`, `api/services/organization_bootstrap.py` | Provider display name "AiLunaPro" (id stays `dograh`). | Providers page lists "Dograh". |
+| `api/app.py` | OpenAPI title and server URL. | API docs say "Dograh API". |
+| `api/routes/workflow_embed.py`, `ui/public/embed/dograh-widget.js`, `ui/next.config.ts`, `EmbedDialog.tsx`, `constants/embedExamples.ts` | Snippet loads `/embed/ailunapro-widget.js`, global `window.AiLunaProWidget`, `data-ailunapro-context`, `ailunapro-inline-container`. The old names keep working for embeds already live. | Customers paste a "Dograh" snippet on their site. |
+| `ui/src/components/Footer.tsx`, `ui/public/licenses.txt` | Footer follows the language; "Open source" link to the BSD notices Dograh and Pipecat require. | Footer in French only; licence notice missing. |
+

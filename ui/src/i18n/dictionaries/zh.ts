@@ -38,12 +38,12 @@ export const zh: Dict = {
     settings: "设置",
   },
   version: {
-    title: (ui, upstream) => `Voice AiLunaPro ${ui} · 基于 Dograh ${upstream}`,
+    title: (ui, upstream) => `Voice AiLunaPro ${ui} · 引擎 ${upstream}`,
     update: "更新",
     updateTip: (latest, current) =>
-      `Dograh ${latest} 已发布（当前构建：${current}）— 查看发布说明`,
+      `AiLunaPro ${latest} 已发布（当前构建：${current}）— 查看发布说明`,
     latest: "最新",
-    latestTip: "您使用的是最新的 Dograh 版本",
+    latestTip: "您使用的是最新的 AiLunaPro 版本",
   },
   topbar: {
     search: "搜索页面和操作…",
@@ -170,5 +170,7 @@ export const zh: Dict = {
   footer: {
     privacy: "隐私",
     terms: "条款",
+    support: "支持",
+    openSource: "开源许可",
   },
 };

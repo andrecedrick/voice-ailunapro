@@ -28,8 +28,9 @@ from api.services.configuration.model_connections import (
 from api.services.mps_billing import ensure_hosted_mps_billing_account_v2
 from api.services.mps_service_key_client import mps_service_key_client
 
-MANAGED_SERVICE_KEY_NAME = "Default Dograh Model Service Key"
-MANAGED_CONNECTION_NAME = "Dograh"
+# BRAND: names shown to customers (not looked up by name). See BRAND.md.
+MANAGED_SERVICE_KEY_NAME = "Default AiLunaPro Model Service Key"
+MANAGED_CONNECTION_NAME = "AiLunaPro"
 DEFAULT_CONFIGURATION_NAME = "Organization default"
 
 # A holder that dies mid-provisioning leaves its lease pending. This bounds how

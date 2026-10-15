@@ -158,6 +158,26 @@ absent "$(ui src/app/api-keys/page.tsx)" 'app.dograh.com' \
 absent "$(ui src/components/layout/AppSidebar.tsx)" 'useLatestReleaseVersion' \
   "The 'Dograh x.y is out' badge is back in front of customers."
 
+# Section 6 — whole-app translation and rebranding.
+exists "$(ui src/components/brand/DomLocalizer.tsx)" "DOM localizer (translation + rebrand of upstream screens)."
+contains "$(ui src/app/layout.tsx)" "<DomLocalizer />" \
+  "Mounts the localizer; without it upstream screens stay English and say Dograh."
+for l in fr es de it pt ru zh; do
+  exists "$(ui src/i18n/catalog/$l.json)" "UI catalog for $l."
+done
+absent "$(ui src/components/lead-forms/onboardingServiceClient.ts)" 'api-leads.dograh.com' \
+  "Lead forms must not post our customers to Dograh's backend."
+contains "$(ui public/embed/dograh-widget.js)" 'window.AiLunaProWidget' \
+  "Widget exposes the AiLunaPro global used by our snippets."
+exists "$(ui public/licenses.txt)" "BSD notices required by Dograh and Pipecat."
+# Repo-only (the UI image builder has no api/ nor compose file).
+if [ -n "$UI" ]; then
+  absent docker-compose.yaml 'phc_' \
+    "No upstream PostHog key: it reports our customers' usage to Dograh."
+  absent api/services/quota_service.py 'app.dograh.com' \
+    "Out-of-credit messages must not send customers to Dograh."
+fi
+
 echo
 if [ "$failures" -eq 0 ]; then
   printf '%sBrand intact.%s\n\n' "$GREEN" "$OFF"

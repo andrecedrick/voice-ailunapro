@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Sora } from "next/font/google";
 import { Suspense } from "react";
 
+import { DomLocalizer } from "@/components/brand/DomLocalizer";
 import ChatwootWidget from "@/components/ChatwootWidget";
 import { EventBanner } from "@/components/EventBanner";
 import AppLayout from "@/components/layout/AppLayout";
@@ -112,6 +113,8 @@ export default async function RootLayout({
                 header/sidebar offsets in AppLayout + globals.css consume. */}
             {showEventBanner ? <EventBanner /> : null}
             <I18nProvider initialLocale={locale}>
+            {/* BRAND: translates + rebrands the upstream screens. See BRAND.md §6. */}
+            <DomLocalizer />
             <AuthProvider>
               <AppConfigProvider>
                 <Suspense fallback={<SpinLoader />}>

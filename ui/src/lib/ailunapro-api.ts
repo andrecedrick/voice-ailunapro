@@ -103,6 +103,15 @@ export const billingApi = {
     client.post({ url: "/api/v1/billing/stripe/portal", headers: json }) as Res<{ url: string }>,
 };
 
+export type LeadKind = "enterprise" | "hire_expert" | "onboarding";
+export type LeadReply = { ok: boolean; show_calendar?: boolean; cal_link?: string | null };
+
+/** Lead / onboarding forms → our backend, which emails the sales inbox. */
+export const leadsApi = {
+  submit: (kind: LeadKind, data: Record<string, unknown>): Res<LeadReply> =>
+    client.post({ url: "/api/v1/ailunapro/leads", body: { kind, data }, headers: json }) as Res<LeadReply>,
+};
+
 /** Store the session the same way the login form does (httpOnly cookies via our route). */
 export async function startSession(session: AuthSession): Promise<void> {
   await fetch("/api/auth/session", {

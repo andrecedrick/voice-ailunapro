@@ -107,13 +107,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Dograh API",
-    description="API for the Dograh app",
+    # BRAND: public API docs carry our name. See BRAND.md.
+    title="Voice AiLunaPro API",
+    description="API for Voice AiLunaPro",
     version="1.0.0",
     openapi_url=f"{API_PREFIX}/openapi.json",
     lifespan=lifespan,
     servers=[
-        {"url": "https://app.dograh.com", "description": "Production"},
+        {"url": "https://voice-api.ailunapro.com", "description": "Production"},
         {"url": "http://localhost:8000", "description": "Local development"},
     ],
 )

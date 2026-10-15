@@ -38,12 +38,12 @@ export const de: Dict = {
     settings: "Einstellungen",
   },
   version: {
-    title: (ui, upstream) => `Voice AiLunaPro ${ui} · basiert auf Dograh ${upstream}`,
+    title: (ui, upstream) => `Voice AiLunaPro ${ui} · Engine ${upstream}`,
     update: "Update",
     updateTip: (latest, current) =>
-      `Dograh ${latest} ist verfügbar (diese Version: ${current}) — Versionshinweise ansehen`,
+      `AiLunaPro ${latest} ist verfügbar (diese Version: ${current}) — Versionshinweise ansehen`,
     latest: "Aktuell",
-    latestTip: "Sie nutzen die neueste Dograh-Version",
+    latestTip: "Sie nutzen die neueste AiLunaPro-Version",
   },
   topbar: {
     search: "Bildschirme und Aktionen suchen…",
@@ -170,5 +170,7 @@ export const de: Dict = {
   footer: {
     privacy: "Datenschutz",
     terms: "AGB",
+    support: "Support",
+    openSource: "Open Source",
   },
 };

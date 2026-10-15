@@ -7,7 +7,12 @@
 // .env.example ships this commented out) → fall back to our cloud leads backend so we
 // still receive OSS form submissions. Override the env var to point elsewhere (or to a
 // local backend) to stop sending leads to us.
-const BASE_URL = process.env.NEXT_PUBLIC_ONBOARDING_API_URL || "https://api-leads.dograh.com";
+import { type LeadKind,leadsApi } from "@/lib/ailunapro-api";
+
+// BRAND: upstream falls back to Dograh's own leads backend, which ships OUR
+// customers' emails to a third party. No URL configured → the forms go to our
+// own API (/api/v1/ailunapro/leads), which emails the sales inbox. BRAND.md §6.
+const BASE_URL = (process.env.NEXT_PUBLIC_ONBOARDING_API_URL || "").trim();
 
 // Bound every call so a slow/hung service can never freeze the UI. Best-effort:
 // failures are surfaced via console.error (Sentry breadcrumbs) but never thrown.
@@ -23,7 +28,22 @@ export type LeadResult = {
 
 // POST a JSON body to the onboarding service (public — no auth header). Returns the parsed
 // body on success, or null on a non-2xx / network error / timeout (best-effort, never throws).
+const OWN_KIND: Record<string, LeadKind> = {
+  "/api/v1/leads/hire-expert": "hire_expert",
+  "/api/v1/leads/enterprise": "enterprise",
+  "/api/v1/onboarding": "onboarding",
+};
+
 async function post(path: string, body: unknown): Promise<LeadResult | null> {
+  if (!BASE_URL) {
+    try {
+      const res = await leadsApi.submit(OWN_KIND[path] ?? "enterprise", (body ?? {}) as Record<string, unknown>);
+      return res.data ?? null;
+    } catch (e) {
+      console.error(`[leads] POST ${path} failed`, e);
+      return null;
+    }
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
