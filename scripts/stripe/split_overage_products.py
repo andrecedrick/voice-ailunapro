@@ -90,6 +90,9 @@ def main() -> None:
     ap.add_argument("--fix-minutes", action="store_true",
                     help="align the minutes quoted in each plan description "
                          "with the free tier actually billed")
+    ap.add_argument("--neutral-text", action="store_true",
+                    help="drop the one-language descriptions: the app now sends "
+                         "the offer in the customer's language with Checkout")
     args = ap.parse_args()
 
     products = call("GET", "/v1/products?active=true&limit=100")["data"]
@@ -102,6 +105,23 @@ def main() -> None:
 
     mode = "APPLY" if args.apply else "DRY RUN"
     print(f"[{mode}] {len(plans)} plan(s), {len(linked)} overage product(s) linked")
+
+    if args.neutral_text:
+        for plan in sorted(plans, key=lambda p: p["name"]):
+            name = plan["name"][len(PREFIX):].strip(" —-–:") or plan["name"]
+            changes = [(plan, {"description": ""})]
+            if plan["id"] in linked:
+                changes.append((linked[plan["id"]],
+                                {"name": f"{PREFIX} — {name} · +min", "description": ""}))
+            for product, body in changes:
+                if product.get("description") or product["name"] != body.get("name", product["name"]):
+                    if args.apply:
+                        call("POST", f"/v1/products/{product['id']}", body)
+                    print(f"- {product['id']} {product['name']!r}: "
+                          f"{'updated' if args.apply else 'would set'} {body}")
+        if not args.apply:
+            print("Nothing written. Re-run with --apply.")
+        return
 
     for plan in sorted(plans, key=lambda p: p["name"]):
         name = plan["name"][len(PREFIX):].strip(" —-–:") or plan["name"]

@@ -93,14 +93,18 @@ export const billingApi = {
   plans: (): Res<PlansResult> => client.get({ url: "/api/v1/billing/stripe/plans" }) as Res<PlansResult>,
   status: (): Res<SubscriptionStatus> =>
     client.get({ url: "/api/v1/billing/stripe/status" }) as Res<SubscriptionStatus>,
-  checkout: (planId: string): Res<{ url: string }> =>
+  checkout: (planId: string, locale?: string): Res<{ url: string }> =>
     client.post({
       url: "/api/v1/billing/stripe/checkout-session",
-      body: { plan_id: planId },
+      body: { plan_id: planId, locale },
       headers: json,
     }) as Res<{ url: string }>,
-  portal: (): Res<{ url: string }> =>
-    client.post({ url: "/api/v1/billing/stripe/portal", headers: json }) as Res<{ url: string }>,
+  portal: (locale?: string): Res<{ url: string }> =>
+    client.post({
+      url: "/api/v1/billing/stripe/portal",
+      body: { locale },
+      headers: json,
+    }) as Res<{ url: string }>,
 };
 
 export type LeadKind = "enterprise" | "hire_expert" | "onboarding";

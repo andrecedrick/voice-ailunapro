@@ -34,6 +34,12 @@ class CheckoutRequest(BaseModel):
     # A Stripe product id from GET /plans — never a raw price id, so the
     # browser cannot check out a price that is not one of our plans.
     plan_id: str
+    # App language ("fr", "zh", …): Checkout is shown in it.
+    locale: str | None = None
+
+
+class PortalRequest(BaseModel):
+    locale: str | None = None
 
 
 class PlanResponse(BaseModel):
@@ -164,6 +170,7 @@ async def start_checkout(
             customer_email=getattr(user, "email", None),
             existing_customer_id=billing.stripe_customer_id if billing else None,
             trial_days=trial_days,
+            locale=payload.locale,
         )
     except Exception as e:
         reason = stripe_error_message(e)
@@ -177,6 +184,7 @@ async def start_checkout(
 
 @router.post("/portal", response_model=CheckoutResponse)
 async def open_customer_portal(
+    payload: PortalRequest | None = None,
     user: UserModel = Depends(get_user_with_selected_organization),
 ) -> CheckoutResponse:
     """Open the Stripe customer portal to change plan, card or cancel."""
@@ -192,6 +200,7 @@ async def open_customer_portal(
         url = await create_portal_session(
             customer_id=billing.stripe_customer_id,
             return_url=f"{UI_APP_URL.rstrip('/')}/billing",
+            locale=payload.locale if payload else None,
         )
     except Exception as e:
         reason = stripe_error_message(e)

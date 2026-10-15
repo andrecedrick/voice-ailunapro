@@ -40,6 +40,7 @@ from api.constants import (
 )
 from api.db import db_client
 from api.db.organization_billing_client import BILLABLE_STATUSES
+from api.services.billing.checkout_text import offer_message, stripe_locale
 from api.services.billing.plans import Plan, plan_for_price
 
 _TIMEOUT = httpx.Timeout(15.0)
@@ -269,6 +270,7 @@ async def create_checkout_session(
     customer_email: str | None = None,
     existing_customer_id: str | None = None,
     trial_days: int = 0,
+    locale: str | None = None,
 ) -> str:
     """Open a Stripe Checkout session for a catalog plan and return its URL.
 
@@ -295,6 +297,19 @@ async def create_checkout_session(
     }
     if plan.metered_price_id:
         data["line_items[1][price]"] = plan.metered_price_id
+    # Stripe's UI in the customer's language, plus the offer explained in that
+    # language (product texts in Stripe exist in one language only).
+    data["locale"] = stripe_locale(locale)
+    message = offer_message(
+        locale=locale,
+        plan_name=plan.name,
+        included_minutes=plan.included_minutes,
+        overage_per_minute=plan.overage_per_minute,
+        currency=plan.currency,
+        trial_days=trial_days,
+    )
+    if message:
+        data["custom_text[submit][message]"] = message
     if trial_days > 0:
         data["subscription_data[trial_period_days]"] = str(trial_days)
     if existing_customer_id:
@@ -308,11 +323,17 @@ async def create_checkout_session(
     return session["url"]
 
 
-async def create_portal_session(*, customer_id: str, return_url: str) -> str:
+async def create_portal_session(
+    *, customer_id: str, return_url: str, locale: str | None = None
+) -> str:
     """Open a Stripe customer portal session and return its URL."""
     session = await _post(
         "/v1/billing_portal/sessions",
-        {"customer": customer_id, "return_url": return_url},
+        {
+            "customer": customer_id,
+            "return_url": return_url,
+            "locale": stripe_locale(locale),
+        },
     )
     return session["url"]
 

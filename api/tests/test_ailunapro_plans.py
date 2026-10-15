@@ -103,3 +103,17 @@ def test_stripe_error_message_is_readable_and_redacted():
     msg = stripe_error_message(httpx.HTTPStatusError("x", request=req, response=res))
     assert "resource_missing" in msg and "line_items[1][price]" in msg
     assert "rk_live_abc123XYZ" not in msg and "[REDACTED_KEY]" in msg
+
+
+def test_checkout_offer_text_follows_app_language():
+    from api.services.billing.checkout_text import offer_message, stripe_locale
+
+    kw = dict(plan_name="Pro", included_minutes=1500, overage_per_minute="11",
+              currency="eur", trial_days=7)
+    fr = offer_message(locale="fr", **kw)
+    assert "1 500 minutes" in fr and "0,11 €" in fr and "7 jours" in fr
+    assert "€0.11" in offer_message(locale="en", **kw)
+    assert "1.500 Minuten" in offer_message(locale="de", **kw)
+    assert "1,500" in offer_message(locale="zh", **kw)
+    assert offer_message(locale="xx", **kw) is None
+    assert stripe_locale("pt") == "pt" and stripe_locale(None) == "auto"
