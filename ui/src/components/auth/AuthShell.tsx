@@ -11,10 +11,11 @@ import type { ReactNode } from "react";
 
 import { BrandLogo } from "@/components/BrandLogo";
 
+// BRAND: value props in the product's own voice. See BRAND.md.
 const HIGHLIGHTS = [
-  "Speech-to-speech",
-  "MCP-native",
-  "BYOK - any model",
+  "Voix à voix, en temps réel",
+  "Natif MCP",
+  "Vos clés, vos modèles",
 ];
 
 export function AuthShell({
@@ -27,7 +28,7 @@ export function AuthShell({
   return (
     <div className="grid min-h-screen w-full bg-background lg:grid-cols-[55%_45%]">
       {/* Form column (LEFT) — scrolls and stays centered so tall forms never
-          clip. Carries the giant faded "dograh" imprint along its bottom. */}
+          clip. BRAND: carries the AiLunaPro halo canvas (.auth-imprint). */}
       <main className="auth-imprint flex min-h-screen flex-col overflow-y-auto">
         <div className="flex min-h-full items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-md space-y-6 rounded-2xl border border-border/60 bg-card p-6 shadow-lg sm:p-8">
@@ -41,7 +42,7 @@ export function AuthShell({
       </main>
 
       {/* Brand / value panel (RIGHT) — hidden on mobile */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden border-l border-border/60 bg-zinc-950 p-10 lg:flex xl:p-14">
+      <aside className="relative hidden flex-col justify-between overflow-hidden border-l border-border/60 bg-[color:var(--al-ink)] p-10 lg:flex xl:p-14">
         {/* Ambient depth: soft radial glow behind the content */}
         <div
           aria-hidden
@@ -55,7 +56,7 @@ export function AuthShell({
 
         <div className="relative max-w-md space-y-5">
           <h1 className="text-3xl font-semibold leading-tight tracking-tight text-zinc-50 xl:text-4xl">
-            The open-source voice AI platform.
+            La plateforme d&apos;agents vocaux IA.
           </h1>
           <ul className="flex flex-wrap gap-2">
             {HIGHLIGHTS.map((point) => (
@@ -73,11 +74,11 @@ export function AuthShell({
             viewport edge while justify-between keeps the column layout */}
         <div className="relative mb-12 max-w-md space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-5 xl:mb-16">
           <h2 className="text-sm font-semibold text-zinc-100">
-            Need on-prem, data residency &amp; a data perimeter?
+            Besoin d&apos;un déploiement sur site ou d&apos;une résidence des données ?
           </h2>
           <p className="text-sm text-zinc-400">
-            We deploy Voice AiLunaPro inside your environment for regulated and
-            high-scale teams.
+            Nous déployons Voice AiLunaPro dans votre environnement, pour les
+            équipes réglementées et à fort volume.
           </p>
           {enterpriseSlot}
         </div>

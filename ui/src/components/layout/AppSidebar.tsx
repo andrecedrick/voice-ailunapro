@@ -12,6 +12,7 @@ import {
   FileText,
   Home,
   Key,
+  LifeBuoy,
   LogOut,
   type LucideIcon,
   Megaphone,
@@ -20,7 +21,6 @@ import {
   Settings,
   ShieldCheck,
   TrendingUp,
-  UserRound,
   Workflow,
   Wrench,
 } from "lucide-react";
@@ -56,7 +56,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppConfig } from "@/context/AppConfigContext";
-import { useLeadForms } from "@/context/LeadFormsContext";
 import { useTelephonyConfigWarnings } from "@/context/TelephonyConfigWarningsContext";
 import { useLatestReleaseVersion } from "@/hooks/useLatestReleaseVersion";
 import type { LocalUser } from "@/lib/auth";
@@ -75,8 +74,11 @@ type SidebarNavSection = {
   items: SidebarNavItem[];
 };
 
-const TELEPHONY_WARNING_COPY = "Action required";
+const TELEPHONY_WARNING_COPY = "Action requise";
 
+// BRAND: labels and section headings follow the AiLunaPro_Voice_Dashboard
+// template (French, "Build" / "Gérer"). The urls are upstream's and must stay
+// in step with Dograh's routes — only the copy is ours. See BRAND.md.
 const NAV_SECTIONS: SidebarNavSection[] = [
   {
     items: [
@@ -91,73 +93,73 @@ const NAV_SECTIONS: SidebarNavSection[] = [
     label: "BUILD",
     items: [
       {
-        title: "Voice Agents",
+        title: "Agents vocaux",
         url: "/workflow",
         icon: Workflow,
       },
       {
-        title: "Providers",
+        title: "Fournisseurs",
         url: "/provider-connections",
         icon: Plug,
       },
       {
-        title: "Models",
+        title: "Modèles",
         url: "/model-configurations",
         icon: Brain,
       },
       {
-        title: "Telephony",
+        title: "Téléphonie",
         url: "/telephony-configurations",
         icon: Phone,
         showsTelephonyWarning: true,
       },
       {
-        title: "Tools",
+        title: "Outils",
         url: "/tools",
         icon: Wrench,
       },
       {
-        title: "Credentials",
+        title: "Identifiants",
         url: "/credentials",
         icon: ShieldCheck,
       },
       {
-        title: "Files",
+        title: "Fichiers",
         url: "/files",
         icon: Database,
       },
       {
-        title: "Campaigns",
+        title: "Campagnes",
         url: "/campaigns",
         icon: Megaphone,
       },
       {
-        title: "Recordings",
+        title: "Enregistrements",
         url: "/recordings",
         icon: AudioLines,
       },
       {
-        title: "Developers",
+        title: "Développeurs",
         url: "/api-keys",
         icon: Key,
       },
     ],
   },
   {
-    label: "MANAGE",
+    label: "GÉRER",
     items: [
       {
-        title: "Agent Runs",
+        title: "Exécutions d'agents",
         url: "/usage",
         icon: TrendingUp,
       },
       {
-        title: "Billing",
+        title: "Facturation",
         url: "/billing",
         icon: CircleDollarSign,
       },
       {
-        title: "Reports",
+        title: "Rapports",
         url: "/reports",
         icon: FileText,
       }
@@ -171,7 +173,6 @@ export function AppSidebar() {
   const { state, isMobile, setOpenMobile } = useSidebar();
   const { provider, logout, user } = useAuth();
   const { config } = useAppConfig();
-  const { openHireExpert } = useLeadForms();
   const {
     telnyxMissingWebhookPublicKeyCount,
     vonageMissingSignatureSecretCount,
@@ -305,32 +306,38 @@ export function AppSidebar() {
     </Button>
   );
 
-  // "Hire an Expert" CTA, rendered INSIDE the shared footer pill next to the
-  // profile icon. Expanded: label pill filling the row. Collapsed: icon-only.
-  const hireExpertButton = isCollapsed ? (
+  // BRAND: upstream puts a "Hire an Expert" CTA in the footer pill, which sells
+  // Dograh's own services. Replaced with a support link to our own address.
+  // See BRAND.md.
+  const supportButton = isCollapsed ? (
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
           size="icon"
+          variant="ghost"
           className="h-7 w-7 rounded-full"
-          onClick={() => openHireExpert("sidebar")}
-          aria-label="Hire an Expert"
+          asChild
         >
-          <UserRound className="h-3.5 w-3.5" />
+          <a href="mailto:service@ailunapro.com" aria-label="Support">
+            <LifeBuoy className="h-3.5 w-3.5" />
+          </a>
         </Button>
       </TooltipTrigger>
       <TooltipContent side="right">
-        <p>Hire an Expert</p>
+        <p>Support</p>
       </TooltipContent>
     </Tooltip>
   ) : (
     <Button
       size="sm"
+      variant="ghost"
       className="h-7 gap-1.5 rounded-full px-3 text-xs"
-      onClick={() => openHireExpert("sidebar")}
+      asChild
     >
-      <UserRound className="h-3.5 w-3.5" />
-      Hire an Expert
+      <a href="mailto:service@ailunapro.com">
+        <LifeBuoy className="h-3.5 w-3.5" />
+        Support
+      </a>
     </Button>
   );
 
@@ -344,12 +351,14 @@ export function AppSidebar() {
               className="notranslate flex items-center gap-2 px-1"
               translate="no"
             >
-              <BrandLogo mark className="h-6" />
+              {/* BRAND: full wordmark on the contrast pill, with the version
+                  chip from the template beside it. See BRAND.md. */}
+              <BrandLogo pill className="h-[17px]" />
               {versionInfo && (
                 <span
-                  className="notranslate text-xs font-normal text-muted-foreground"
+                  className="al-version-chip notranslate"
                   translate="no"
-                  title={`Voice AiLunaPro ${versionInfo.ui} · built on Dograh ${versionInfo.upstream}`}
+                  title={`Voice AiLunaPro ${versionInfo.ui} · construit sur Dograh ${versionInfo.upstream}`}
                 >
                   v{versionInfo.ui}
                 </span>
@@ -359,7 +368,7 @@ export function AppSidebar() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <a
-                    href="https://docs.dograh.com/deployment/update"
+                    href="https://github.com/andrecedrick/voice-ailunapro/releases"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 rounded-md border bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium leading-none text-amber-900 transition-opacity hover:opacity-80 dark:bg-amber-950 dark:text-amber-200"
@@ -369,7 +378,7 @@ export function AppSidebar() {
                   </a>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                  <p>Dograh {latestRelease} is out (this build: {versionInfo?.upstream}) - click to see the update guide</p>
+                  <p>Dograh {latestRelease} est disponible (cette version : {versionInfo?.upstream}) — voir les notes de version</p>
                 </TooltipContent>
               </Tooltip>
             )}
@@ -381,7 +390,7 @@ export function AppSidebar() {
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                  <p>You&apos;re running the latest release</p>
+                  <p>Vous êtes à jour avec la dernière version Dograh</p>
                 </TooltipContent>
               </Tooltip>
             )}
@@ -458,15 +467,15 @@ export function AppSidebar() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => router.push("/settings")} className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
-                    Platform Settings
+                    Paramètres
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
+                    Se déconnecter
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              {hireExpertButton}
+              {supportButton}
             </div>
           )}
 
@@ -495,19 +504,19 @@ export function AppSidebar() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => router.push("/handler/account-settings")} className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
-                    Account settings
+                    Paramètres du compte
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push("/settings")} className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
-                    Platform Settings
+                    Paramètres
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
+                    Se déconnecter
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              {hireExpertButton}
+              {supportButton}
             </div>
           )}
 
@@ -522,7 +531,7 @@ export function AppSidebar() {
                 </div>
               </TooltipTrigger>
               <TooltipContent side={isCollapsed ? "right" : "top"}>
-                <p>Toggle theme</p>
+                <p>Basculer le thème</p>
               </TooltipContent>
             </Tooltip>
           </div>

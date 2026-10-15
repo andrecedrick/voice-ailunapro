@@ -35,17 +35,28 @@ COPY ui/postcss.config.mjs ./
 COPY ui/public ./public
 COPY ui/src ./src
 
+# BRAND: the design layer and its check. A Dograh upgrade that reverts one of
+# the patched files must not be buildable — verify-brand.sh runs before
+# `next build` below and fails the image instead of shipping Dograh's look.
+# See BRAND.md.
+COPY BRAND.md ./BRAND.md
+COPY scripts/verify-brand.sh ./scripts/verify-brand.sh
+
 # Set build-time environment variables (needed for Next.js build)
 ENV NEXT_PUBLIC_NODE_ENV="oss"
 ENV NEXT_TELEMETRY_DISABLED="1"
-ENV NEXT_PUBLIC_CHATWOOT_URL="https://chat.dograh.com"
-ENV NEXT_PUBLIC_CHATWOOT_TOKEN="3fkFx2mCEjNHjM9gaNc4A82X"
+# BRAND: upstream bakes in Dograh's own Chatwoot workspace, which would put
+# their support chat on our customers' screens. Left blank; ChatwootWidget
+# renders nothing without a URL. Set these to an AiLunaPro workspace to enable.
+ENV NEXT_PUBLIC_CHATWOOT_URL=""
+ENV NEXT_PUBLIC_CHATWOOT_TOKEN=""
 ENV BACKEND_URL="http://api:8000"
 
 # Build the application with standalone mode
 # Increase Node.js heap size to prevent out-of-memory errors during build
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN npm run build && \
+RUN sh ./scripts/verify-brand.sh && \
+    npm run build && \
     rm -rf /tmp/* /root/.npm /root/.next/cache
 
 # Stage 3: Runner (production image)

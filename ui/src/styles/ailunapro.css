@@ -1,0 +1,472 @@
+/* ===========================================================================
+   Voice AiLunaPro — brand & design layer
+   ===========================================================================
+
+   THIS FILE IS OURS. Dograh upstream does not have it, so `git merge
+   upstream/main` can never conflict on it and no Dograh release can overwrite
+   the design. Everything that makes the app look like Voice AiLunaPro rather
+   than Dograh lives here — palette, glass surfaces, grid, halos, sidebar dock,
+   cards, tables, inputs, typography.
+
+   It is pulled in by exactly ONE line in src/app/layout.tsx, placed AFTER
+   globals.css so these rules win every same-specificity tie:
+
+       import "../styles/ailunapro.css";
+
+   That single import is the only thing an upgrade can break, and
+   scripts/verify-brand.sh fails the build if it goes missing. See BRAND.md.
+
+   HOW IT WORKS (deliberately): nothing here touches a component. It restyles
+   the app through
+     - the shadcn design tokens (--background, --card, --primary, …), and
+     - the stable `data-slot` hooks the shadcn primitives already emit,
+   so new Dograh screens inherit the design automatically instead of needing to
+   be ported one by one.
+
+   Rules below sit OUTSIDE @layer on purpose: the elements they restyle carry
+   Tailwind utility classes (bg-card, border-border/60, bg-background/70), and
+   utilities live in a later cascade layer than @layer components — un-layered
+   author CSS beats both.
+
+   Palette taken verbatim from the AiLunaPro_Voice_Dashboard template:
+     ink #070912 · cyan #22D3EE · violet #8B5CF6 · paper #F2F4FA
+=========================================================================== */
+
+/* --- 1. Tokens ----------------------------------------------------------- */
+
+:root {
+  /* Raw brand scale — referenced by the rules further down. */
+  --al-ink: #070912;
+  --al-cyan: #22d3ee;
+  --al-cyan-deep: #0e7490;
+  --al-violet: #8b5cf6;
+  --al-emerald: #34d399;
+  --al-amber: #fbbf24;
+  --al-rose: #f87171;
+
+  /* Light theme (the template's `light`). */
+  --al-bg: #f2f4fa;
+  --al-surface: rgba(255, 255, 255, 0.8);
+  --al-surface-2: rgba(236, 240, 248, 0.92);
+  --al-sidebar: rgba(255, 255, 255, 0.86);
+  --al-topbar: rgba(242, 244, 250, 0.78);
+  --al-pop: rgba(255, 255, 255, 0.98);
+  --al-border: rgba(30, 40, 90, 0.12);
+  --al-text: #0f172a;
+  --al-muted: #4f5a73;
+  --al-accent: var(--al-cyan-deep);
+  --al-grid: rgba(30, 40, 90, 0.06);
+  --al-blob-1: rgba(139, 92, 246, 0.14);
+  --al-blob-2: rgba(34, 211, 238, 0.14);
+  --al-ok: #047857;
+  --al-warn: #b45309;
+
+  /* shadcn tokens remapped onto the scale above. Every primitive in the app
+     reads these, so the whole surface follows without edits. */
+  --background: var(--al-bg);
+  --foreground: var(--al-text);
+  --card: var(--al-surface);
+  --card-foreground: var(--al-text);
+  --popover: var(--al-pop);
+  --popover-foreground: var(--al-text);
+  --primary: var(--al-cyan-deep);
+  --primary-foreground: #f6fdff;
+  --secondary: var(--al-surface-2);
+  --secondary-foreground: var(--al-text);
+  --muted: var(--al-surface-2);
+  --muted-foreground: var(--al-muted);
+  --accent: rgba(14, 116, 144, 0.1);
+  --accent-foreground: var(--al-text);
+  --border: var(--al-border);
+  --input: var(--al-border);
+  --ring: var(--al-cyan-deep);
+  --sidebar: var(--al-sidebar);
+  --sidebar-foreground: var(--al-text);
+  --sidebar-primary: var(--al-cyan-deep);
+  --sidebar-primary-foreground: #f6fdff;
+  --sidebar-accent: rgba(14, 116, 144, 0.1);
+  --sidebar-accent-foreground: var(--al-text);
+  --sidebar-border: var(--al-border);
+  --sidebar-ring: var(--al-cyan-deep);
+  --chart-1: var(--al-cyan-deep);
+  --chart-2: var(--al-violet);
+  --chart-3: var(--al-emerald);
+  --chart-4: var(--al-amber);
+  --chart-5: var(--al-rose);
+
+  /* The one accent used on primary CTAs, focus rings and the active nav mark.
+     Upstream points it at an amber; ours is the brand cyan. */
+  --cta: var(--al-cyan-deep);
+  --cta-foreground: #04212b;
+
+  /* Kills Dograh's giant faded "dograh" wordmark, which .app-surface and the
+     auth shell paint from this variable. Our canvas is grid + halos instead. */
+  --brand-imprint: none;
+
+  --radius: 0.75rem;
+
+  /* Type. The two faces are loaded by next/font in src/app/layout.tsx, which
+     publishes --font-inter and --font-sora; the fallbacks keep the app
+     readable if that patch is ever lost in an upgrade. */
+  --al-font-body: var(--font-inter), var(--font-geist-sans), ui-sans-serif,
+    system-ui, sans-serif;
+  --al-font-display: var(--font-sora), var(--al-font-body);
+}
+
+.dark {
+  --al-bg: var(--al-ink);
+  --al-surface: rgba(14, 18, 32, 0.62);
+  --al-surface-2: rgba(19, 26, 46, 0.7);
+  --al-sidebar: rgba(10, 13, 24, 0.8);
+  --al-topbar: rgba(7, 9, 18, 0.6);
+  --al-pop: rgba(14, 18, 32, 0.96);
+  --al-border: rgba(140, 160, 255, 0.12);
+  --al-text: #e6eaf5;
+  --al-muted: #8a93ad;
+  --al-accent: var(--al-cyan);
+  --al-grid: rgba(140, 160, 255, 0.05);
+  --al-blob-1: rgba(139, 92, 246, 0.2);
+  --al-blob-2: rgba(34, 211, 238, 0.13);
+  --al-ok: var(--al-emerald);
+  --al-warn: var(--al-amber);
+
+  --background: var(--al-bg);
+  --foreground: var(--al-text);
+  --card: var(--al-surface);
+  --card-foreground: var(--al-text);
+  --popover: var(--al-pop);
+  --popover-foreground: var(--al-text);
+  --primary: var(--al-cyan);
+  --primary-foreground: #05131a;
+  --secondary: var(--al-surface-2);
+  --secondary-foreground: var(--al-text);
+  --muted: var(--al-surface-2);
+  --muted-foreground: var(--al-muted);
+  --accent: rgba(34, 211, 238, 0.1);
+  --accent-foreground: var(--al-text);
+  --border: var(--al-border);
+  --input: rgba(140, 160, 255, 0.18);
+  --ring: var(--al-cyan);
+  --sidebar: var(--al-sidebar);
+  --sidebar-foreground: var(--al-text);
+  --sidebar-primary: var(--al-cyan);
+  --sidebar-primary-foreground: #05131a;
+  --sidebar-accent: rgba(34, 211, 238, 0.1);
+  --sidebar-accent-foreground: var(--al-text);
+  --sidebar-border: var(--al-border);
+  --sidebar-ring: var(--al-cyan);
+  --chart-1: var(--al-cyan);
+  --chart-2: var(--al-violet);
+  --chart-3: var(--al-emerald);
+  --chart-4: var(--al-amber);
+  --chart-5: var(--al-rose);
+
+  --cta: var(--al-cyan);
+  --cta-foreground: #05131a;
+  --brand-imprint: none;
+}
+
+/* --- 2. Canvas ----------------------------------------------------------- */
+
+/* The page itself carries the ink/paper colour so there is no flash of the
+   upstream charcoal before .app-surface paints. */
+body {
+  background-color: var(--al-bg);
+  color: var(--al-text);
+  font-family: var(--al-font-body);
+}
+
+/* Display face on headings and KPI figures — the template's Sora. Loaded in
+   src/app/layout.tsx as --font-display. */
+h1,
+h2,
+h3,
+.al-display {
+  font-family: var(--al-font-display);
+  letter-spacing: -0.015em;
+}
+
+/* Main content canvas: a faint 32px graph grid plus two soft colour halos,
+   replacing Dograh's bottom-pinned wordmark. background-attachment: fixed
+   keeps the halos still while content scrolls, so the canvas reads as depth
+   rather than as a pattern glued to the page. */
+.app-surface {
+  background-color: var(--al-bg);
+  background-image:
+    radial-gradient(
+      60rem 40rem at 82% -10%,
+      var(--al-blob-1) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      52rem 34rem at 8% 108%,
+      var(--al-blob-2) 0%,
+      transparent 72%
+    ),
+    linear-gradient(to right, var(--al-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--al-grid) 1px, transparent 1px);
+  background-size:
+    auto,
+    auto,
+    32px 32px,
+    32px 32px;
+  background-position: 0 0;
+  background-repeat: no-repeat, no-repeat, repeat, repeat;
+  background-attachment: fixed, fixed, fixed, fixed;
+}
+
+/* The halos are decoration; drop them where motion/contrast settings ask. */
+@media (prefers-contrast: more) {
+  .app-surface {
+    background-image:
+      linear-gradient(to right, var(--al-grid) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--al-grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+}
+
+/* Auth pages: same canvas, element-relative (no fixed attachment) so it
+   centres on whatever column carries the class. */
+.auth-imprint {
+  background-image:
+    radial-gradient(
+      44rem 30rem at 50% 0%,
+      var(--al-blob-1) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      38rem 26rem at 50% 100%,
+      var(--al-blob-2) 0%,
+      transparent 72%
+    );
+  background-size: auto;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* --- 3. Cards ------------------------------------------------------------ */
+
+/* Frosted glass instead of Dograh's crosshatch twill. .card-weave is applied
+   by components/ui/card.tsx to every Card in the app, which is why this one
+   rule reskins every screen — including Dograh screens we have never opened. */
+.card-weave {
+  background-image: none;
+  border-radius: 1rem;
+  border-color: var(--al-border);
+  background-color: var(--al-surface);
+  backdrop-filter: blur(22px) saturate(1.1);
+  -webkit-backdrop-filter: blur(22px) saturate(1.1);
+  box-shadow: 0 18px 40px -28px rgba(3, 5, 12, 0.5);
+}
+
+.dark .card-weave {
+  background-image: none;
+  /* Light catching the top edge of the panel, as in the template. */
+  border-top-color: rgba(140, 160, 255, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 24px 54px -30px rgba(0, 0, 0, 0.9);
+}
+
+/* Hover lift on cards that are themselves links or buttons. */
+.card-weave:is(a, button):hover {
+  border-color: color-mix(in oklab, var(--cta) 42%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--cta) 18%, transparent);
+}
+
+/* --- 4. Sidebar dock ----------------------------------------------------- */
+
+.app-sidebar-dock [data-slot="sidebar-inner"] {
+  border-radius: 1.25rem;
+  border-color: var(--al-border);
+  background-color: var(--al-sidebar);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  overflow: hidden;
+}
+
+/* Override upstream's carbon panel + left-edge glow with the brand glass. */
+.dark .app-sidebar-dock [data-slot="sidebar-inner"] {
+  border-color: var(--al-border);
+  background-color: var(--al-sidebar);
+  box-shadow:
+    inset 1px 0 0 rgba(140, 160, 255, 0.1),
+    0 24px 50px -16px rgba(0, 0, 0, 0.85);
+}
+
+/* Section labels: small, wide, quiet — the template's "BUILD" / "MANAGE". */
+.app-sidebar-dock [data-slot="sidebar-group-label"] {
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  color: var(--al-muted);
+}
+
+/* Nav rows. The active row in the template is a cyan-tinted pill with a cyan
+   rail on its left edge; upstream hardcodes an amber glow on the icon, which
+   the filter reset below removes. */
+.app-sidebar-dock [data-slot="sidebar-menu-button"] {
+  border-radius: 0.875rem;
+  transition:
+    background-color 0.18s,
+    color 0.18s,
+    border-color 0.18s;
+}
+
+.app-sidebar-dock [data-slot="sidebar-menu-button"] svg {
+  filter: none;
+}
+
+.app-sidebar-dock [data-slot="sidebar-menu-button"][data-active="true"],
+.app-sidebar-dock [data-slot="sidebar-menu-button"].bg-cta\/15 {
+  background-color: color-mix(in oklab, var(--cta) 14%, transparent);
+  color: var(--al-text);
+}
+
+/* --- 5. Top bar ---------------------------------------------------------- */
+
+[data-slot="sidebar-inset"] > header {
+  border-color: var(--al-border);
+  background-color: var(--al-topbar);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* --- 6. Tables ----------------------------------------------------------- */
+
+/* Quiet uppercase column heads and hairline rows, matching the template's
+   activity and runs tables. Scoped to tables inside cards so the workflow
+   editor's own grids are left alone. */
+.card-weave table thead th {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--al-muted);
+}
+
+.card-weave table :is(td, th) {
+  border-color: var(--al-border);
+}
+
+.card-weave table tbody tr:hover {
+  background-color: color-mix(in oklab, var(--cta) 5%, transparent);
+}
+
+/* --- 7. Controls --------------------------------------------------------- */
+
+[data-slot="input"],
+textarea,
+[data-slot="select-trigger"] {
+  border-radius: 0.625rem;
+  border-color: var(--al-border);
+  background-color: var(--al-surface-2);
+}
+
+[data-slot="input"]:focus-visible,
+textarea:focus-visible,
+[data-slot="select-trigger"]:focus-visible {
+  border-color: color-mix(in oklab, var(--cta) 60%, transparent);
+}
+
+/* Primary buttons glow faintly, as in the template. */
+[data-slot="button"].bg-primary,
+[data-slot="button"]:not([class*="bg-"]):not([class*="hover:bg-"]) {
+  border-radius: 0.625rem;
+}
+
+.dark [data-slot="button"].bg-primary {
+  box-shadow: 0 0 18px -4px color-mix(in oklab, var(--cta) 45%, transparent);
+}
+
+/* --- 8. Brand bits ------------------------------------------------------- */
+
+/* The wordmark is a violet-to-cyan gradient on transparent, so it sits
+   directly on the dark canvas but needs an ink pill to hold contrast on the
+   light one. Applied by components/BrandLogo.tsx. */
+.al-logo-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  background: #0b1020;
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.18);
+}
+
+.dark .al-logo-pill {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Version chip next to the logo. */
+.al-version-chip {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.375rem;
+  color: var(--al-accent);
+  border: 1px solid color-mix(in oklab, var(--cta) 30%, transparent);
+  background: color-mix(in oklab, var(--cta) 8%, transparent);
+}
+
+/* Status pill. Colour comes from --al-st-*, set inline per status by
+   components/brand/StatusPill.tsx. */
+.al-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  color: var(--al-st-fg, var(--al-muted));
+  background: var(--al-st-bg, var(--al-surface-2));
+}
+
+.al-status::before {
+  content: "";
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.al-status[data-pulse="true"]::before {
+  animation: al-pulse 1.8s ease-out infinite;
+}
+
+@keyframes al-pulse {
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+    opacity: 1;
+  }
+  70% {
+    box-shadow: 0 0 0 5px transparent;
+    opacity: 0.6;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .al-status[data-pulse="true"]::before {
+    animation: none;
+  }
+}
+
+/* Thin progress rail — usage bars, campaign progress, quota meters. */
+.al-rail {
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--al-surface-2);
+  overflow: hidden;
+}
+
+.al-rail > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--al-violet), var(--al-cyan));
+}

@@ -30,7 +30,7 @@ export function AuthEnterpriseCTA() {
         onClick={openModal}
         className="w-full border-white/20 bg-white/5 text-zinc-100 hover:bg-white/10 hover:text-white"
       >
-        Enterprise Enquiry
+        Demande entreprise
       </Button>
       <EnterpriseModal open={open} onOpenChange={setOpen} source="auth_page" />
     </>

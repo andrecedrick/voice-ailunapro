@@ -1,8 +1,12 @@
 import "./globals.css";
+// BRAND: the Voice AiLunaPro design layer. MUST stay AFTER globals.css — it
+// wins same-specificity ties by source order. Losing this line reverts the app
+// to Dograh's look; scripts/verify-brand.sh fails the build if it goes. See BRAND.md.
+import "../styles/ailunapro.css";
 
 import { GoogleTagManager } from "@next/third-parties/google";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter, Sora } from "next/font/google";
 import { Suspense } from "react";
 
 import ChatwootWidget from "@/components/ChatwootWidget";
@@ -32,9 +36,23 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// BRAND: the two faces the design layer reads as --al-font-body / --al-font-display.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const sora = Sora({
+  variable: "--font-sora",
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Voice AiLunaPro",
-  description: "Open Source Voice Assistant Workflow Builder",
+  description: "Agents vocaux IA — création, campagnes et téléphonie",
 };
 
 export default function RootLayout({
@@ -74,7 +92,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${sora.variable} antialiased`}>
         {gtmId ? <GoogleTagManager gtmId={gtmId} /> : null}
         {metaPixelId ? <MetaPixel pixelId={metaPixelId} /> : null}
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
