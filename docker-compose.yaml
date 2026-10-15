@@ -229,6 +229,7 @@ services:
       STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET:-}"
       STRIPE_METER_EVENT_NAME: "${STRIPE_METER_EVENT_NAME:-voice_minutes}"
       STRIPE_TRIAL_MINUTE_CAP: "${STRIPE_TRIAL_MINUTE_CAP:-50}"
+      BILLING_EXEMPT_ORG_IDS: "${BILLING_EXEMPT_ORG_IDS:-}"
 
       # Trust X-Forwarded-* headers from any peer so uvicorn honors nginx's
       # `X-Forwarded-Proto: https`. nginx runs as its own container and reaches

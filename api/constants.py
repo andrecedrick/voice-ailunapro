@@ -87,6 +87,14 @@ STRIPE_METER_EVENT_NAME = os.getenv("STRIPE_METER_EVENT_NAME", "voice_minutes")
 # Minutes a trialing subscription may burn before calls are refused. Keeps a
 # free trial from running up model and telephony cost with no card behind it.
 STRIPE_TRIAL_MINUTE_CAP = int(os.getenv("STRIPE_TRIAL_MINUTE_CAP", "50"))
+# Organizations that place calls without a subscription — the operator's own
+# workspace, and any account comped by hand. Everyone else needs a plan once
+# STRIPE_SECRET_KEY is set. Comma-separated organization ids.
+BILLING_EXEMPT_ORG_IDS = frozenset(
+    int(o.strip())
+    for o in os.getenv("BILLING_EXEMPT_ORG_IDS", "").split(",")
+    if o.strip().isdigit()
+)
 
 ENABLE_PROMETHEUS_METRICS = (
     os.getenv("ENABLE_PROMETHEUS_METRICS", "false").lower() == "true"

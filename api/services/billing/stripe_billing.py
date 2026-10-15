@@ -30,6 +30,7 @@ import httpx
 from loguru import logger
 
 from api.constants import (
+    BILLING_EXEMPT_ORG_IDS,
     STRIPE_API_BASE,
     STRIPE_METER_EVENT_NAME,
     STRIPE_SECRET_KEY,
@@ -97,13 +98,16 @@ async def _get(path: str) -> dict:
 async def check_organization_can_call(organization_id: int) -> BillingDecision:
     """Decide whether an organization may start a billable run.
 
-    Allows the call when billing is off, or when the organization has never
-    reached checkout — an operator's own organization keeps working without a
-    subscription. A read failure allows the call too: refusing live traffic
-    because the billing table is briefly unreachable costs more than one
-    unbilled call.
+    With signup open, a workspace that never reached checkout is a stranger,
+    not the operator: once billing is configured it is refused unless it is
+    listed in BILLING_EXEMPT_ORG_IDS. A read failure still allows the call —
+    refusing live traffic because the billing table is briefly unreachable
+    costs a paying customer more than one unbilled call.
     """
     if not is_enabled():
+        return BillingDecision(allowed=True)
+
+    if organization_id in BILLING_EXEMPT_ORG_IDS:
         return BillingDecision(allowed=True)
 
     try:
@@ -117,7 +121,14 @@ async def check_organization_can_call(organization_id: int) -> BillingDecision:
         return BillingDecision(allowed=True)
 
     if billing is None:
-        return BillingDecision(allowed=True)
+        return BillingDecision(
+            allowed=False,
+            error_code="subscription_required",
+            error_message=(
+                "This workspace has no Voice AiLunaPro plan yet. "
+                "Start a plan to place calls."
+            ),
+        )
 
     status = (billing.status or "").lower()
     if status not in BILLABLE_STATUSES:
