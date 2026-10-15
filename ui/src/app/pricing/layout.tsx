@@ -58,6 +58,9 @@ body:has(#pricing-top) .app-surface{background:none!important}
 #pricing-top button{font:inherit;color:inherit}
 #pricing-top :focus-visible{outline:2px solid #22D3EE;outline-offset:3px;border-radius:10px}
 #pricing-top ::selection{background:rgba(124,58,237,.35)}
+/* The FAQ panels stay mounted and toggle [hidden] so aria-controls always
+   resolves; this does not rely on the host stylesheet's preflight. */
+#pricing-top [hidden]{display:none!important}
 
 @keyframes pr-rise{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:none}}
 @keyframes pr-intro{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
@@ -76,6 +79,7 @@ body:has(#pricing-top) .app-surface{background:none!important}
 
 #pricing-top .pr-nav:hover{color:var(--text,#F8FAFC)!important;background:var(--hover,rgba(255,255,255,.05))!important}
 #pricing-top .pr-toggle:hover{border-color:rgba(34,211,238,.45)!important;box-shadow:0 0 20px rgba(34,211,238,.2)!important}
+#pricing-top .pr-ccy:hover{border-color:rgba(34,211,238,.5)!important;color:var(--text,#F8FAFC)!important}
 #pricing-top .pr-cta:hover{box-shadow:0 0 34px rgba(124,58,237,.7)!important;color:#fff!important}
 #pricing-top .pr-chip:hover{border-color:rgba(34,211,238,.5)!important}
 #pricing-top .pr-cta-best:hover{box-shadow:0 0 40px rgba(124,58,237,.75)!important;color:#fff!important}

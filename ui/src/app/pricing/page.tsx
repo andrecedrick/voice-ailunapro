@@ -17,17 +17,22 @@ type Plan = {
   feat: string[];
 };
 
+/* lo/hi return the provider's published cost for `m` minutes in USD — the
+   currency all four of them list in. Everything is converted to EUR (the
+   billing currency, and therefore this page's internal basis) before it is
+   plotted or printed, so one bar scale covers every row.
+   fixedAnnualUsd is a published annual USD floor rather than a usage figure. */
 type Competitor = {
   name: string;
   model: string;
   trial: string;
   lo: (m: number) => number;
   hi: (m: number) => number;
-  cur: string;
-  fixed?: string;
+  fixedAnnualUsd?: number;
 };
 
 type ThemeName = "dark" | "light";
+type Currency = "EUR" | "USD" | "GBP";
 
 /* Live Stripe payment links — copied verbatim, never rewritten. */
 const PLANS: Plan[] = [
@@ -91,10 +96,10 @@ const PLANS: Plan[] = [
 ];
 
 const COMP: Competitor[] = [
-  { name: "Vapi", model: "Pay as you go, per minute", trial: "Starter credit", lo: (m) => m * 0.129, hi: (m) => m * 0.129, cur: "$" },
-  { name: "Retell AI", model: "Per minute, infra + models", trial: "Starter credit", lo: (m) => m * 0.055, hi: (m) => m * 0.31, cur: "$" },
-  { name: "Bland AI", model: "Per minute, bundled", trial: "Demo only", lo: (m) => m * 0.12, hi: (m) => m * 0.14, cur: "$" },
-  { name: "Synthflow (enterprise)", model: "Annual contract", trial: "Sales call", lo: () => 2500, hi: () => 2500, cur: "$", fixed: "from $30,000 / year" },
+  { name: "Vapi", model: "Pay as you go, per minute", trial: "Starter credit", lo: (m) => m * 0.129, hi: (m) => m * 0.129 },
+  { name: "Retell AI", model: "Per minute, infra + models", trial: "Starter credit", lo: (m) => m * 0.055, hi: (m) => m * 0.31 },
+  { name: "Bland AI", model: "Per minute, bundled", trial: "Demo only", lo: (m) => m * 0.12, hi: (m) => m * 0.14 },
+  { name: "Synthflow (enterprise)", model: "Annual contract", trial: "Sales call", lo: () => 2500, hi: () => 2500, fixedAnnualUsd: 30000 },
 ];
 
 const WHY = [
@@ -173,6 +178,17 @@ const ICON = {
   moon: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z",
 };
 
+/* Plan prices are set in EUR in Stripe, so EUR is the source of truth and the
+   only currency anything is ever charged in. These are indicative display
+   rates for the switcher — the charge is always taken in EUR. */
+const RATES: Record<Currency, number> = { EUR: 1, USD: 1.09, GBP: 0.85 };
+const SYMBOL: Record<Currency, string> = { EUR: "€", USD: "$", GBP: "£" };
+const CURRENCIES: Currency[] = ["EUR", "USD", "GBP"];
+const DEFAULT_CURRENCY: Currency = "EUR";
+const CURRENCY_KEY = "voice-pricing-currency";
+const isCurrency = (v: unknown): v is Currency =>
+  v === "EUR" || v === "USD" || v === "GBP";
+
 /* The source component took these as editor props; the route has no props, so
    they are the design's declared defaults. */
 const DEFAULT_MINUTES = 1000;
@@ -194,8 +210,17 @@ const fromT = (t: number) =>
   Math.min(MAX, Math.max(MIN, snap(MIN * Math.exp(R * Math.min(1, Math.max(0, t))))));
 
 const nf = new Intl.NumberFormat("en-US");
-const eur = (n: number) => "€" + nf.format(Math.round(n));
-const eur2 = (n: number) => "€" + n.toFixed(n < 1 ? 3 : 2);
+
+/* The two formatters every amount on the page goes through. Both take an
+   amount in EUR and render it in the display currency: money() for whole
+   amounts, money2() for per-minute rates. money2 keeps the source's own
+   convention of 3 decimals under 1, which also keeps a converted rate precise
+   enough for the "base + extra × rate" formula strings to add up. */
+const money = (n: number, c: Currency) => SYMBOL[c] + nf.format(Math.round(n * RATES[c]));
+const money2 = (n: number, c: Currency) => {
+  const v = n * RATES[c];
+  return SYMBOL[c] + v.toFixed(v < 1 ? 3 : 2);
+};
 const cost = (p: Plan, m: number) => p.base + Math.max(0, m - p.incl) * p.rate;
 const bestPlan = (m: number) => {
   let b = PLANS[0];
@@ -240,6 +265,9 @@ const PRESETS = [500, 1000, 3000, 8000, 15000];
 export default function PricingPage() {
   const [m, setM] = useState(INITIAL_M);
   const [theme, setTheme] = useState<ThemeName>("dark");
+  /* Always the default on first render; the stored choice is read on mount
+     only, so the server and client markup agree. */
+  const [cur, setCur] = useState<Currency>(DEFAULT_CURRENCY);
   const [drag, setDrag] = useState(false);
   const [faq, setFaq] = useState(0);
   /* Matches the source's initial state: wide until the media query is read on
@@ -252,6 +280,9 @@ export default function PricingPage() {
   const rafRef = useRef(0);
   const reducedRef = useRef(false);
   const prevMRef = useRef(INITIAL_M);
+  /* The count-up tween writes into the DOM outside of render, so it needs the
+     live currency rather than the one captured when the tween started. */
+  const curRef = useRef<Currency>(DEFAULT_CURRENCY);
 
   const applyTheme = useCallback((next: ThemeName) => {
     const vars = THEMES[next];
@@ -274,6 +305,13 @@ export default function PricingPage() {
     const onMq = () => setWide(mq.matches);
     mq.addEventListener("change", onMq);
 
+    try {
+      const saved = window.localStorage.getItem(CURRENCY_KEY);
+      if (isCurrency(saved)) setCur(saved);
+    } catch {
+      /* private mode, blocked storage: keep the default */
+    }
+
     setWide(mq.matches);
     setTheme(resolved);
     applyTheme(resolved);
@@ -292,6 +330,19 @@ export default function PricingPage() {
       st.removeProperty("color-scheme");
     };
   }, [applyTheme]);
+
+  useEffect(() => {
+    curRef.current = cur;
+  }, [cur]);
+
+  const pickCurrency = useCallback((next: Currency) => {
+    setCur(next);
+    try {
+      window.localStorage.setItem(CURRENCY_KEY, next);
+    } catch {
+      /* non-fatal: the switcher still works for this visit */
+    }
+  }, []);
 
   /* Count-up tween on the "best fit" total. Writes straight into the text node
      the way the source does, so the number animates without re-rendering. */
@@ -315,7 +366,7 @@ export default function PricingPage() {
       const p = Math.min(1, (now - t0) / dur);
       const e = 1 - Math.pow(1 - p, 3);
       shownRef.current = from + (target - from) * e;
-      if (el.firstChild) el.firstChild.nodeValue = eur(shownRef.current);
+      if (el.firstChild) el.firstChild.nodeValue = money(shownRef.current, curRef.current);
       if (p < 1) rafRef.current = requestAnimationFrame(step);
     };
     rafRef.current = requestAnimationFrame(step);
@@ -439,13 +490,24 @@ export default function PricingPage() {
   const maxT = Math.max(...totals);
   const bp = PLANS[bi];
   const pos = pct(toT(m));
-  const compVals = COMP.map((c) => ({ lo: c.lo(m), hi: c.hi(m) }));
+  /* Competitors publish in USD; divide out the USD rate so compVals, totals
+     and therefore `scale` are all in EUR and share one basis. */
+  const compVals = COMP.map((c) => ({
+    lo: c.lo(m) / RATES.USD,
+    hi: c.hi(m) / RATES.USD,
+  }));
   const scale =
-    Math.max(totals[bi], ...compVals.filter((_, i) => !COMP[i].fixed).map((v) => v.hi)) * 1.08;
+    Math.max(
+      totals[bi],
+      ...compVals.filter((_, i) => !COMP[i].fixedAnnualUsd).map((v) => v.hi),
+    ) * 1.08;
   const accentInk = light ? "#6D28D9" : "#22D3EE";
 
   const mLabel = nf.format(m);
-  const mText = nf.format(m) + " minutes per month";
+  const mText = `${nf.format(m)} minutes per month — best fit ${PLANS[bi].name} at ${money(
+    totals[bi],
+    cur,
+  )} per month`;
   const themeIcon = light ? ICON.moon : ICON.sun;
   const themeLabel = light ? "Switch to dark theme" : "Switch to light theme";
 
@@ -482,14 +544,14 @@ export default function PricingPage() {
 
   const best = {
     name: bp.name,
-    total: eur(shownRef.current ?? totals[bi]),
-    eff: eur2(totals[bi] / m),
+    total: money(shownRef.current ?? totals[bi], cur),
+    eff: money2(totals[bi] / m, cur),
     usedPct: Math.round(Math.min(m / bp.incl, 1) * 100) + "%",
     url: bp.url,
   };
 
   const hasSave = ri != null && totals[ri] - totals[bi] >= 1;
-  const runner = { name: PLANS[ri].name, save: eur(totals[ri] - totals[bi]) };
+  const runner = { name: PLANS[ri].name, save: money(totals[ri] - totals[bi], cur) };
 
   const rows = PLANS.map((p, i) => {
     const b = i === bi;
@@ -498,12 +560,14 @@ export default function PricingPage() {
     return {
       name: p.name,
       best: b,
-      total: eur(totals[i]),
-      formula: over ? `€${p.base} + ${nf.format(over)} × €${p.rate.toFixed(2)}` : `€${p.base} flat`,
+      total: money(totals[i], cur),
+      formula: over
+        ? `${money(p.base, cur)} + ${nf.format(over)} × ${money2(p.rate, cur)}`
+        : `${money(p.base, cur)} flat`,
       baseW: pct(p.base / maxT),
       overW: pct(oc / maxT),
       baseTxt: `${nf.format(Math.min(m, p.incl))} of ${nf.format(p.incl)} included min`,
-      overTxt: over ? `+${eur(oc)} extra minutes` : `${nf.format(p.incl - m)} min to spare`,
+      overTxt: over ? `+${money(oc, cur)} extra minutes` : `${nf.format(p.incl - m)} min to spare`,
       overC: over ? "var(--warn,#FBBF24)" : "var(--ok,#34D399)",
       bd: b ? "rgba(34,211,238,.5)" : "var(--border,rgba(255,255,255,.08))",
       bg: b
@@ -519,10 +583,14 @@ export default function PricingPage() {
     const b = i === bi;
     return {
       name: p.name,
+      /* `featured` still drives the visual emphasis, but never a badge: the
+         only badge on a card is "Best fit" on the cheapest plan, so two cards
+         can no longer claim to be the recommendation at once. */
       featured: !!p.featured,
-      price: "€" + p.base,
+      best: b,
+      price: money(p.base, cur),
       incl: nf.format(p.incl),
-      rate: "€" + p.rate.toFixed(2),
+      rate: money2(p.rate, cur),
       feat: p.feat,
       url: p.url,
       fill: pct(Math.min(ratio, 1)),
@@ -532,7 +600,7 @@ export default function PricingPage() {
         : "linear-gradient(90deg,#7C3AED,#22D3EE)",
       glow: over ? "rgba(245,158,11,.45)" : "rgba(34,211,238,.45)",
       meterTxt: over
-        ? `${nf.format(m - p.incl)} min over · +${eur((m - p.incl) * p.rate)}`
+        ? `${nf.format(m - p.incl)} min over · +${money((m - p.incl) * p.rate, cur)}`
         : `${Math.round(ratio * 100)}% of included minutes`,
       meterC: over ? "var(--warn,#FBBF24)" : "var(--muted,#94A3B8)",
       tagC: b || p.featured ? accentInk : "var(--muted,#94A3B8)",
@@ -560,7 +628,7 @@ export default function PricingPage() {
       name: "Voice AiLunaPro — " + bp.name,
       model: "Flat subscription, " + nf.format(bp.incl) + " min included",
       trial: "7 days",
-      cost: eur(totals[bi]) + " (" + eur2(totals[bi] / m) + " / min)",
+      cost: money(totals[bi], cur) + " (" + money2(totals[bi] / m, cur) + " / min)",
       note: "Best plan at this volume",
       loW: pct(totals[bi] / scale),
       hiW: pct(totals[bi] / scale),
@@ -577,11 +645,11 @@ export default function PricingPage() {
         name: c.name,
         model: c.model,
         trial: c.trial,
-        cost: c.fixed
-          ? c.fixed
+        cost: c.fixedAnnualUsd
+          ? `from ${money(c.fixedAnnualUsd / RATES.USD, cur)} / year`
           : range
-            ? `$${nf.format(Math.round(v.lo))} – $${nf.format(Math.round(v.hi))}`
-            : `≈ $${nf.format(Math.round(v.lo))}`,
+            ? `${money(v.lo, cur)} – ${money(v.hi, cur)}`
+            : `≈ ${money(v.lo, cur)}`,
         note: off ? "Off the chart at this volume →" : range ? "Range depends on model mix" : "",
         loW: pct(Math.min(1, v.lo / scale)),
         hiW: pct(Math.min(1, v.hi / scale)),
@@ -765,6 +833,51 @@ export default function PricingPage() {
           <div
             style={css({ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 })}
           >
+            <div
+              role="group"
+              aria-label="Display currency"
+              style={css({
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                height: 44,
+                padding: 4,
+                borderRadius: 12,
+                border: "1px solid var(--border,rgba(255,255,255,.08))",
+                background: "var(--surface,rgba(14,21,48,.6))",
+              })}
+            >
+              {CURRENCIES.map((c) => {
+                const sel = c === cur;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className="pr-ccy"
+                    onClick={() => pickCurrency(c)}
+                    aria-pressed={sel}
+                    title={`Show prices in ${c}`}
+                    style={css({
+                      height: "100%",
+                      padding: "0 8px",
+                      borderRadius: 9,
+                      cursor: "pointer",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".06em",
+                      border: `1px solid ${sel ? "rgba(34,211,238,.55)" : "transparent"}`,
+                      background: sel
+                        ? "linear-gradient(120deg,rgba(124,58,237,.3),rgba(34,211,238,.22))"
+                        : "transparent",
+                      color: sel ? "var(--text,#F8FAFC)" : "var(--muted,#94A3B8)",
+                      transition: "all .3s cubic-bezier(.16,1,.3,1)",
+                    })}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
             <button
               type="button"
               className="pr-toggle"
@@ -1360,126 +1473,140 @@ export default function PricingPage() {
               </div>
 
               <div
-                role="list"
-                aria-label="Monthly cost per plan"
                 style={css({
                   flex: "999 1 480px",
                   minWidth: 0,
                   display: "grid",
                   gap: 10,
+                  alignContent: "start",
                 })}
               >
-                {rows.map((r) => (
-                  <button
-                    key={r.name}
-                    type="button"
-                    role="listitem"
-                    className="pr-row"
-                    onClick={scrollToPlans}
-                    style={css({
-                      display: "grid",
-                      gap: 10,
-                      padding: "16px 18px",
-                      borderRadius: 16,
-                      cursor: "pointer",
-                      textAlign: "left",
-                      border: `1px solid ${r.bd}`,
-                      background: r.bg,
-                      boxShadow: r.sh,
-                      transition: "border-color .4s,background .4s,box-shadow .4s",
-                    })}
-                  >
-                    <span
-                      style={css({
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: 10,
-                        flexWrap: "wrap",
-                      })}
-                    >
-                      <strong
-                        style={css({ fontFamily: DISPLAY, fontWeight: 600, fontSize: 16 })}
+                {/* A real list wrapper. The source put role="listitem" on the
+                    buttons, which replaced their button role and left them
+                    announced as plain list items. */}
+                <ul
+                  aria-label="Monthly cost per plan"
+                  style={css({
+                    listStyle: "none",
+                    margin: 0,
+                    padding: 0,
+                    display: "grid",
+                    gap: 10,
+                  })}
+                >
+                  {rows.map((r) => (
+                    <li key={r.name}>
+                      <button
+                        type="button"
+                        className="pr-row"
+                        onClick={scrollToPlans}
+                        style={css({
+                          width: "100%",
+                          display: "grid",
+                          gap: 10,
+                          padding: "16px 18px",
+                          borderRadius: 16,
+                          cursor: "pointer",
+                          textAlign: "left",
+                          border: `1px solid ${r.bd}`,
+                          background: r.bg,
+                          boxShadow: r.sh,
+                          transition: "border-color .4s,background .4s,box-shadow .4s",
+                        })}
                       >
-                        {r.name}
-                      </strong>
-                      {r.best ? (
                         <span
                           style={css({
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: ".06em",
-                            padding: "3px 8px",
-                            borderRadius: 999,
-                            color: "#05131A",
-                            background: "linear-gradient(120deg,#22D3EE,#C084FC)",
+                            display: "flex",
+                            alignItems: "baseline",
+                            gap: 10,
+                            flexWrap: "wrap",
                           })}
                         >
-                          BEST FIT
+                          <strong
+                            style={css({ fontFamily: DISPLAY, fontWeight: 600, fontSize: 16 })}
+                          >
+                            {r.name}
+                          </strong>
+                          {r.best ? (
+                            <span
+                              style={css({
+                                fontSize: 11,
+                                fontWeight: 700,
+                                letterSpacing: ".06em",
+                                padding: "3px 8px",
+                                borderRadius: 999,
+                                color: "#05131A",
+                                background: "linear-gradient(120deg,#22D3EE,#C084FC)",
+                              })}
+                            >
+                              BEST FIT
+                            </span>
+                          ) : null}
+                          <span style={css({ fontSize: 12, color: "var(--muted,#94A3B8)" })}>
+                            {r.formula}
+                          </span>
+                          <strong
+                            style={css({
+                              marginLeft: "auto",
+                              fontFamily: DISPLAY,
+                              fontWeight: 700,
+                              fontSize: 18,
+                              fontVariantNumeric: "tabular-nums",
+                            })}
+                          >
+                            {r.total}
+                          </strong>
                         </span>
-                      ) : null}
-                      <span style={css({ fontSize: 12, color: "var(--muted,#94A3B8)" })}>
-                        {r.formula}
-                      </span>
-                      <strong
-                        style={css({
-                          marginLeft: "auto",
-                          fontFamily: DISPLAY,
-                          fontWeight: 700,
-                          fontSize: 18,
-                          fontVariantNumeric: "tabular-nums",
-                        })}
-                      >
-                        {r.total}
-                      </strong>
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      style={css({
-                        position: "relative",
-                        display: "flex",
-                        height: 12,
-                        borderRadius: 999,
-                        background: "var(--track,rgba(255,255,255,.07))",
-                        overflow: "hidden",
-                      })}
-                    >
-                      <span
-                        style={css({
-                          height: "100%",
-                          width: r.baseW,
-                          background: "linear-gradient(90deg,#7C3AED,#22D3EE)",
-                          boxShadow: "0 0 12px rgba(34,211,238,.45)",
-                          transition: "width .6s cubic-bezier(.16,1,.3,1)",
-                        })}
-                      />
-                      <span
-                        style={css({
-                          height: "100%",
-                          width: r.overW,
-                          backgroundColor: "rgba(192,132,252,.85)",
-                          backgroundImage:
-                            "repeating-linear-gradient(45deg,rgba(255,255,255,.28) 0 7px,transparent 7px 14px)",
-                          backgroundSize: "28px 12px",
-                          animation: "pr-stripes 1.4s linear infinite",
-                          transition: "width .6s cubic-bezier(.16,1,.3,1)",
-                        })}
-                      />
-                    </span>
-                    <span
-                      style={css({
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        flexWrap: "wrap",
-                        fontSize: 12,
-                        color: "var(--muted,#94A3B8)",
-                      })}
-                    >
-                      <span>{r.baseTxt}</span>
-                      <span style={css({ color: r.overC })}>{r.overTxt}</span>
-                    </span>
-                  </button>
-                ))}
+                        <span
+                          aria-hidden="true"
+                          style={css({
+                            position: "relative",
+                            display: "flex",
+                            height: 12,
+                            borderRadius: 999,
+                            background: "var(--track,rgba(255,255,255,.07))",
+                            overflow: "hidden",
+                          })}
+                        >
+                          <span
+                            style={css({
+                              height: "100%",
+                              width: r.baseW,
+                              background: "linear-gradient(90deg,#7C3AED,#22D3EE)",
+                              boxShadow: "0 0 12px rgba(34,211,238,.45)",
+                              transition: "width .6s cubic-bezier(.16,1,.3,1)",
+                            })}
+                          />
+                          <span
+                            style={css({
+                              height: "100%",
+                              width: r.overW,
+                              backgroundColor: "rgba(192,132,252,.85)",
+                              backgroundImage:
+                                "repeating-linear-gradient(45deg,rgba(255,255,255,.28) 0 7px,transparent 7px 14px)",
+                              backgroundSize: "28px 12px",
+                              animation: "pr-stripes 1.4s linear infinite",
+                              transition: "width .6s cubic-bezier(.16,1,.3,1)",
+                            })}
+                          />
+                        </span>
+                        <span
+                          style={css({
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            flexWrap: "wrap",
+                            fontSize: 12,
+                            color: "var(--muted,#94A3B8)",
+                          })}
+                        >
+                          <span>{r.baseTxt}</span>
+                          <span style={css({ color: r.overC })}>{r.overTxt}</span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
                 <div
                   style={css({
                     display: "flex",
@@ -1551,7 +1678,7 @@ export default function PricingPage() {
                 textWrap: "balance",
               })}
             >
-              Platform minutes, billed monthly in EUR
+              Platform minutes, billed monthly
             </h2>
             <p
               style={css({
@@ -1615,7 +1742,7 @@ export default function PricingPage() {
                   >
                     {p.name}
                   </span>
-                  {p.featured ? (
+                  {p.best ? (
                     <span
                       style={css({
                         fontSize: 11,
@@ -1628,7 +1755,7 @@ export default function PricingPage() {
                         boxShadow: "0 0 16px rgba(124,58,237,.5)",
                       })}
                     >
-                      Most chosen
+                      Best fit
                     </span>
                   ) : null}
                 </div>
@@ -1778,7 +1905,8 @@ export default function PricingPage() {
               color: "var(--muted,#94A3B8)",
             })}
           >
-            Prices exclude VAT. Extra minutes are billed at the end of each cycle.
+            Prices shown in {cur} at indicative rates and charged in EUR. Prices exclude VAT.
+            Extra minutes are billed at the end of each cycle.
           </p>
         </section>
 
@@ -1935,8 +2063,18 @@ export default function PricingPage() {
                 color: "var(--muted,#94A3B8)",
               })}
             >
-              Competitor figures are published list prices as of October 2026, shown in their
-              original currency, and move with usage mix.
+              All figures above are shown in {cur}, converted at indicative rates; billing always
+              happens in EUR.
+            </p>
+            <p
+              style={css({
+                margin: "6px 0 0",
+                fontSize: 13,
+                color: "var(--muted,#94A3B8)",
+              })}
+            >
+              Competitor figures are published list prices as of October 2026, quoted in USD at
+              source, and move with usage mix.
             </p>
           </section>
         ) : null}
@@ -2151,23 +2289,24 @@ export default function PricingPage() {
                     </span>
                   </button>
                 </h3>
-                {q.open ? (
-                  <div
-                    id={`faq-a-${q.index}`}
-                    role="region"
-                    aria-labelledby={`faq-q-${q.index}`}
-                    style={css({
-                      padding: "0 22px 22px",
-                      fontSize: 15,
-                      lineHeight: 1.7,
-                      color: "var(--muted,#94A3B8)",
-                      animation: "pr-intro .4s cubic-bezier(.16,1,.3,1) both",
-                      textWrap: "pretty",
-                    })}
-                  >
-                    {q.a}
-                  </div>
-                ) : null}
+                {/* Always rendered, toggled with `hidden`, so the id that
+                    aria-controls points at always resolves. */}
+                <div
+                  id={`faq-a-${q.index}`}
+                  role="region"
+                  aria-labelledby={`faq-q-${q.index}`}
+                  hidden={!q.open}
+                  style={css({
+                    padding: "0 22px 22px",
+                    fontSize: 15,
+                    lineHeight: 1.7,
+                    color: "var(--muted,#94A3B8)",
+                    animation: q.open ? "pr-intro .4s cubic-bezier(.16,1,.3,1) both" : "none",
+                    textWrap: "pretty",
+                  })}
+                >
+                  {q.a}
+                </div>
               </div>
             ))}
           </div>
