@@ -7,6 +7,12 @@ two active prices:
 * a metered graduated price — overage, whose first tier is free up to the
   included minutes.
 
+The metered price may live on its own product, linked by the product metadata
+``overage_for=<plan product id>`` (e.g. "Minutes supplémentaires — Pro"). That
+is the preferred layout: Checkout and invoices then show two distinct lines
+instead of the plan name twice. A linked overage product wins over a metered
+price left on the plan product.
+
 Nothing is hard-coded: rename, reprice or add a plan in the Stripe dashboard
 and the app follows within the cache window. The catalog is also the allowlist
 for checkout — the browser picks a plan by product id and the server resolves
@@ -87,18 +93,34 @@ async def _fetch() -> list[Plan]:
         if isinstance(product, str):
             by_product.setdefault(product, []).append(price)
 
+    def _is_metered(price: dict[str, Any]) -> bool:
+        return (price.get("recurring") or {}).get("usage_type") == "metered"
+
+    # Overage products: plan product id → its metered price.
+    linked_overage: dict[str, dict[str, Any]] = {}
+    for product in products.get("data") or []:
+        plan_id = (product.get("metadata") or {}).get("overage_for")
+        if not plan_id:
+            continue
+        for price in by_product.get(product["id"], []):
+            if _is_metered(price):
+                linked_overage[plan_id] = price
+                break
+
     plans: list[Plan] = []
     for product in products.get("data") or []:
         name = product.get("name") or ""
         if not name.startswith(STRIPE_PLAN_PRODUCT_PREFIX):
             continue
+        if (product.get("metadata") or {}).get("overage_for"):
+            continue  # an overage product is never a plan of its own
         base = metered = None
         for price in by_product.get(product["id"], []):
-            recurring = price.get("recurring") or {}
-            if recurring.get("usage_type") == "metered":
+            if _is_metered(price):
                 metered = price
-            elif recurring and base is None:
+            elif price.get("recurring") and base is None:
                 base = price
+        metered = linked_overage.get(product["id"], metered)
         if base is None:
             logger.warning("Stripe plan {} has no monthly price; skipped", name)
             continue

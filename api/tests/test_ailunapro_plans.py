@@ -47,3 +47,42 @@ def test_catalog_keeps_only_prefixed_products_and_reads_tiers(monkeypatch):
     # Not one of our plans, so it can never be checked out.
     assert asyncio.run(plans_mod.plan_by_id("prod_X")) is None
     assert asyncio.run(plans_mod.plan_for_price("price_S_m")).id == "prod_S"
+
+
+def test_overage_on_its_own_product_is_linked_and_preferred(monkeypatch):
+    products = {
+        "data": [
+            {"id": "prod_P", "name": "AiLunaPro Voice — Pro"},
+            {"id": "prod_P_o", "name": "AiLunaPro Voice — Minutes supplémentaires Pro",
+             "metadata": {"overage_for": "prod_P"}},
+        ]
+    }
+    prices = {
+        "data": [
+            {"id": "price_P", "product": "prod_P", "currency": "eur", "unit_amount": 14900,
+             "recurring": {"interval": "month", "usage_type": "licensed"}},
+            # Legacy metered price still on the plan product: the linked one wins.
+            {"id": "price_P_old", "product": "prod_P", "currency": "eur",
+             "recurring": {"interval": "month", "usage_type": "metered"},
+             "tiers": [{"up_to": 100, "unit_amount": 0}, {"up_to": None, "unit_amount": 99}]},
+            {"id": "price_P_o", "product": "prod_P_o", "currency": "eur",
+             "recurring": {"interval": "month", "usage_type": "metered"},
+             "tiers": [{"up_to": 1500, "unit_amount": 0, "flat_amount": 0},
+                       {"up_to": None, "unit_amount_decimal": "11"}]},
+        ]
+    }
+
+    async def fake_get(path):
+        return products if path.startswith("/v1/products") else prices
+
+    import api.services.billing.stripe_billing as sb
+
+    monkeypatch.setattr(sb, "_get", fake_get)
+    monkeypatch.setattr(plans_mod, "_cache", None)
+
+    plans = asyncio.run(plans_mod.list_plans(refresh=True))
+    assert [p.id for p in plans] == ["prod_P"]  # the overage product is not a plan
+    pro = plans[0]
+    assert pro.metered_price_id == "price_P_o"
+    assert (pro.included_minutes, pro.overage_per_minute) == (1500, "11")
+    assert asyncio.run(plans_mod.plan_for_price("price_P_o")).id == "prod_P"
