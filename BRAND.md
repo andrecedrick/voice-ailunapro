@@ -37,6 +37,7 @@ section 2 only if there is no other way.
 | `ui/public/ailunapro-mark.png` | Square icon, 512px. |
 | `ui/src/lib/productVersion.ts` | Our own version numbering, kept apart from Dograh's. |
 | `ui/src/app/pricing/` | The public pricing page. |
+| `ui/src/i18n/pricing/` | Pricing-page copy in the 8 languages (typed against `en.ts`). |
 | `api/services/billing/`, `api/routes/billing_stripe.py`, `api/db/organization_billing_client.py` | The Stripe billing module. |
 | `BRAND.md`, `scripts/verify-brand.sh` | This document and its check. |
 
@@ -82,6 +83,8 @@ names the file.
 | `ui/src/app/overview/page.tsx` | The dashboard, rebuilt from the template on real usage data. | Dograh's welcome page returns. |
 | `ui/src/app/globals.css` | Untouched by us on purpose — `ailunapro.css` overrides it from `layout.tsx`. | — |
 | `ui/src/middleware.ts`, `ui/src/components/layout/AppLayout.tsx` | `/pricing` is public. | The pricing page redirects to the login form. |
+| `ui/src/lib/auth/providers/LocalProviderWrapper.tsx` | Logged-out visitors on `/pricing` and `/embed` are not sent to `/auth/login`. | Prospects see the login form instead of prices. |
+| `ui/src/app/pricing/page.tsx` | Copy from `pricingCopy(locale)`, `LanguageMenu` in the header, transparent logo, competitor rows as published ranges with % below their typical cost. | Page reverts to English-only with single-number competitor prices. |
 
 Two components are **neutralised rather than deleted**, with their props intact.
 That is deliberate: if a Dograh release starts rendering the star badge or the

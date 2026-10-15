@@ -3,6 +3,11 @@
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
+// BRAND: the page follows the app's language menu (English by default).
+import { LanguageMenu } from "@/components/brand/LanguageMenu";
+import { useI18n } from "@/i18n";
+import { pricingCopy } from "@/i18n/pricing";
+
 /* ---------------------------------------------------------------------------
  * Data
  * ------------------------------------------------------------------------- */
@@ -23,12 +28,10 @@ type Plan = {
    plotted or printed, so one bar scale covers every row.
    fixedAnnualUsd is a published annual USD floor rather than a usage figure. */
 type Competitor = {
+  key: "vapi" | "retell" | "bland" | "synthflow";
   name: string;
-  model: string;
-  trial: string;
   lo: (m: number) => number;
   hi: (m: number) => number;
-  fixedAnnualUsd?: number;
 };
 
 type ThemeName = "dark" | "light";
@@ -98,11 +101,17 @@ const PLANS: Plan[] = [
   },
 ];
 
+/* Published all-in ranges, USD per minute, October 2026 (platform + models +
+   voices; telephony where the vendor bundles it). Sources: vendor pricing
+   pages as summarised by ainora.lt "AI Voice Agent Cost per Minute (2026)" and
+   ringly.io "Synthflow pricing in 2026". Re-check before changing a claim:
+   comparative advertising must stay objective and verifiable (EU 2006/114/EC,
+   UK CPRs). Never round a competitor down or our price up to win a row. */
 const COMP: Competitor[] = [
-  { name: "Vapi", model: "Pay as you go, per minute", trial: "Starter credit", lo: (m) => m * 0.129, hi: (m) => m * 0.129 },
-  { name: "Retell AI", model: "Per minute, infra + models", trial: "Starter credit", lo: (m) => m * 0.055, hi: (m) => m * 0.31 },
-  { name: "Bland AI", model: "Per minute, bundled", trial: "Demo only", lo: (m) => m * 0.12, hi: (m) => m * 0.14 },
-  { name: "Synthflow (enterprise)", model: "Annual contract", trial: "Sales call", lo: () => 2500, hi: () => 2500, fixedAnnualUsd: 30000 },
+  { key: "vapi", name: "Vapi", lo: (m) => m * 0.1, hi: (m) => m * 0.3 },
+  { key: "retell", name: "Retell AI", lo: (m) => m * 0.07, hi: (m) => m * 0.31 },
+  { key: "bland", name: "Bland AI", lo: (m) => m * 0.09, hi: (m) => m * 0.2 },
+  { key: "synthflow", name: "Synthflow", lo: (m) => m * 0.13, hi: (m) => m * 0.24 },
 ];
 
 const WHY = [
@@ -121,14 +130,6 @@ const WHY = [
     t: "Leave without a migration",
     d: "The number, the recordings and the carrier account are yours. Disconnecting the agent takes one setting.",
   },
-];
-
-const FAQ: Array<[string, string]> = [
-  ["What does the 7-day trial include?", "Full access to the plan you pick, with a capped number of trial minutes so a runaway loop cannot bill your carrier. A card is required; nothing is charged until day 8 and you can cancel in one click before then."],
-  ["What counts as a platform minute?", "Time the agent spends connected on a call, inbound or outbound, rounded to the second. Hold time and failed dials are not counted."],
-  ["Can I use my own OpenAI or Gemini key?", "Yes, on Business and Agency. Connect your key and model inference leaves your bill with us and lands on your provider account instead."],
-  ["Which carriers work?", "Anything that terminates SIP: Twilio, Telnyx, Vonage, Zadarma, OVH, a local PBX. If your provider gives you SIP credentials, the agent can answer on it."],
-  ["Do you support French-language calls?", "French, English, Spanish, Portuguese and twenty more, with the same agent able to switch mid-call when the caller does."],
 ];
 
 const THEMES: Record<ThemeName, Record<string, string>> = {
@@ -185,7 +186,6 @@ const ICON = {
    only currency anything is ever charged in. These are indicative display
    rates for the switcher — the charge is always taken in EUR. */
 const RATES: Record<Currency, number> = { EUR: 1, USD: 1.09, GBP: 0.85 };
-const SYMBOL: Record<Currency, string> = { EUR: "€", USD: "$", GBP: "£" };
 const CURRENCIES: Currency[] = ["EUR", "USD", "GBP"];
 const DEFAULT_CURRENCY: Currency = "EUR";
 const CURRENCY_KEY = "voice-pricing-currency";
@@ -194,7 +194,9 @@ const isCurrency = (v: unknown): v is Currency =>
 
 /* The source component took these as editor props; the route has no props, so
    they are the design's declared defaults. */
-const DEFAULT_MINUTES = 1000;
+/* 5,000 min/month: a typical small call centre. Every row stays live, so a
+   visitor at any volume sees their own numbers. */
+const DEFAULT_MINUTES = 5000;
 const DEFAULT_THEME: ThemeName | "system" = "system";
 const SHOW_COMPARISON = true;
 
@@ -212,17 +214,35 @@ const snap = (m: number) =>
 const fromT = (t: number) =>
   Math.min(MAX, Math.max(MIN, snap(MIN * Math.exp(R * Math.min(1, Math.max(0, t))))));
 
-const nf = new Intl.NumberFormat("en-US");
+/* Locale for every number on the page. Set from the language menu on each
+   render (see PricingPage); module-level so the formatters below and the
+   count-up tween, which runs outside React, share it. */
+let numberTag = "en-US";
+let nf = new Intl.NumberFormat(numberTag);
+const setNumberLocale = (tag: string) => {
+  if (tag === numberTag) return;
+  numberTag = tag;
+  nf = new Intl.NumberFormat(tag);
+};
 
 /* The two formatters every amount on the page goes through. Both take an
    amount in EUR and render it in the display currency: money() for whole
    amounts, money2() for per-minute rates. money2 keeps the source's own
    convention of 3 decimals under 1, which also keeps a converted rate precise
    enough for the "base + extra × rate" formula strings to add up. */
-const money = (n: number, c: Currency) => SYMBOL[c] + nf.format(Math.round(n * RATES[c]));
+const money = (n: number, c: Currency) =>
+  new Intl.NumberFormat(numberTag, { style: "currency", currency: c, maximumFractionDigits: 0 }).format(
+    Math.round(n * RATES[c]),
+  );
 const money2 = (n: number, c: Currency) => {
   const v = n * RATES[c];
-  return SYMBOL[c] + v.toFixed(v < 1 ? 3 : 2);
+  const d = v < 1 ? 3 : 2;
+  return new Intl.NumberFormat(numberTag, {
+    style: "currency",
+    currency: c,
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  }).format(v);
 };
 const cost = (p: Plan, m: number) => p.base + Math.max(0, m - p.incl) * p.rate;
 const bestPlan = (m: number) => {
@@ -253,13 +273,13 @@ type DocumentWithVT = Document & {
 };
 
 const NAV = [
-  { label: "Calculator", href: "#calculator" },
-  { label: "Plans", href: "#plans" },
-  { label: "Compare", href: "#compare" },
-  { label: "FAQ", href: "#faq" },
-];
+  { key: "calculator", href: "#calculator" },
+  { key: "plans", href: "#plans" },
+  { key: "compare", href: "#compare" },
+  { key: "faq", href: "#faq" },
+] as const;
 
-const PRESETS = [500, 1000, 3000, 8000, 15000];
+const PRESETS = [500, 1000, 3000, 5000, 8000, 15000];
 
 /* ---------------------------------------------------------------------------
  * Page
@@ -276,6 +296,9 @@ export default function PricingPage() {
   /* Matches the source's initial state: wide until the media query is read on
      mount, which keeps the server and first client render identical. */
   const [wide, setWide] = useState(true);
+  const { locale, tag } = useI18n();
+  const P = pricingCopy(locale);
+  setNumberLocale(tag);
 
   const trackRef = useRef<HTMLDivElement | null>(null);
   const totalRef = useRef<HTMLSpanElement | null>(null);
@@ -499,20 +522,17 @@ export default function PricingPage() {
     lo: c.lo(m) / RATES.USD,
     hi: c.hi(m) / RATES.USD,
   }));
-  const scale =
-    Math.max(
-      totals[bi],
-      ...compVals.filter((_, i) => !COMP[i].fixedAnnualUsd).map((v) => v.hi),
-    ) * 1.08;
+  const scale = Math.max(totals[bi], ...compVals.map((v) => v.hi)) * 1.08;
+  /* "Typical" = the midpoint of a vendor's published range. A row only says we
+     are cheaper when our best plan really is below that midpoint. */
+  const typical = compVals.map((v) => (v.lo + v.hi) / 2);
+  const wins = typical.filter((t) => totals[bi] < t).length;
   const accentInk = light ? "#6D28D9" : "#22D3EE";
 
   const mLabel = nf.format(m);
-  const mText = `${nf.format(m)} minutes per month — best fit ${PLANS[bi].name} at ${money(
-    totals[bi],
-    cur,
-  )} per month`;
+  const mText = P.sliderValue(nf.format(m), PLANS[bi].name, money(totals[bi], cur));
   const themeIcon = light ? ICON.moon : ICON.sun;
-  const themeLabel = light ? "Switch to dark theme" : "Switch to light theme";
+  const themeLabel = light ? P.switchDark : P.switchLight;
 
   const thumbScale = drag ? 1.15 : 1;
   const trackTr = drag ? "none" : "width .45s cubic-bezier(.16,1,.3,1)";
@@ -566,11 +586,11 @@ export default function PricingPage() {
       total: money(totals[i], cur),
       formula: over
         ? `${money(p.base, cur)} + ${nf.format(over)} × ${money2(p.rate, cur)}`
-        : `${money(p.base, cur)} flat`,
+        : P.flat(money(p.base, cur)),
       baseW: pct(p.base / maxT),
       overW: pct(oc / maxT),
-      baseTxt: `${nf.format(Math.min(m, p.incl))} of ${nf.format(p.incl)} included min`,
-      overTxt: over ? `+${money(oc, cur)} extra minutes` : `${nf.format(p.incl - m)} min to spare`,
+      baseTxt: P.baseTxt(nf.format(Math.min(m, p.incl)), nf.format(p.incl)),
+      overTxt: over ? P.overTxt(money(oc, cur)) : P.spareTxt(nf.format(p.incl - m)),
       overC: over ? "var(--warn,#FBBF24)" : "var(--ok,#34D399)",
       bd: b ? "rgba(34,211,238,.5)" : "var(--border,rgba(255,255,255,.08))",
       bg: b
@@ -594,7 +614,7 @@ export default function PricingPage() {
       price: money(p.base, cur),
       incl: nf.format(p.incl),
       rate: money2(p.rate, cur),
-      feat: p.feat,
+      feat: P.plans[p.name] ?? p.feat,
       url: p.url,
       fill: pct(Math.min(ratio, 1)),
       pctN: Math.round(Math.min(ratio, 1) * 100),
@@ -603,8 +623,8 @@ export default function PricingPage() {
         : "linear-gradient(90deg,#7C3AED,#22D3EE)",
       glow: over ? "rgba(245,158,11,.45)" : "rgba(34,211,238,.45)",
       meterTxt: over
-        ? `${nf.format(m - p.incl)} min over · +${money((m - p.incl) * p.rate, cur)}`
-        : `${Math.round(ratio * 100)}% of included minutes`,
+        ? P.meterOver(nf.format(m - p.incl), money((m - p.incl) * p.rate, cur))
+        : P.meterPct(Math.round(ratio * 100)),
       meterC: over ? "var(--warn,#FBBF24)" : "var(--muted,#94A3B8)",
       tagC: b || p.featured ? accentInk : "var(--muted,#94A3B8)",
       bd: b
@@ -628,11 +648,12 @@ export default function PricingPage() {
 
   const comp = [
     {
-      name: "Voice AiLunaPro — " + bp.name,
-      model: "Flat subscription, " + nf.format(bp.incl) + " min included",
-      trial: "7 days",
-      cost: money(totals[bi], cur) + " (" + money2(totals[bi] / m, cur) + " / min)",
-      note: "Best plan at this volume",
+      name: P.ourName(bp.name),
+      model: P.ourModel(nf.format(bp.incl)),
+      trial: P.ourTrial,
+      cost: money(totals[bi], cur) + " (" + money2(totals[bi] / m, cur) + " " + P.perMin + ")",
+      note: P.ourNote,
+      noteC: "var(--muted,#94A3B8)",
       loW: pct(totals[bi] / scale),
       hiW: pct(totals[bi] / scale),
       bar: "linear-gradient(90deg,#7C3AED,#22D3EE)",
@@ -644,16 +665,21 @@ export default function PricingPage() {
       const v = compVals[i];
       const range = v.hi - v.lo > 1;
       const off = v.lo > scale;
+      const ours = totals[bi];
+      const below = ours < typical[i];
       return {
         name: c.name,
-        model: c.model,
-        trial: c.trial,
-        cost: c.fixedAnnualUsd
-          ? `from ${money(c.fixedAnnualUsd / RATES.USD, cur)} / year`
-          : range
-            ? `${money(v.lo, cur)} – ${money(v.hi, cur)}`
-            : `≈ ${money(v.lo, cur)}`,
-        note: off ? "Off the chart at this volume →" : range ? "Range depends on model mix" : "",
+        model: P.competitors[c.key].model,
+        trial: P.competitors[c.key].trial,
+        cost: range ? `${money(v.lo, cur)} – ${money(v.hi, cur)}` : `≈ ${money(v.lo, cur)}`,
+        note: below
+          ? P.cheaperThanTypical(Math.round((1 - ours / typical[i]) * 100))
+          : ours < v.hi
+            ? P.withinRange
+            : range
+              ? P.rangeNote
+              : "",
+        noteC: below ? "var(--ok,#34D399)" : "var(--muted,#94A3B8)",
         loW: pct(Math.min(1, v.lo / scale)),
         hiW: pct(Math.min(1, v.hi / scale)),
         bar: off
@@ -666,7 +692,7 @@ export default function PricingPage() {
     }),
   ];
 
-  const faqs = FAQ.map(([q, a], i) => {
+  const faqs = P.faq.map(([q, a], i) => {
     const open = faq === i;
     return {
       q,
@@ -784,16 +810,13 @@ export default function PricingPage() {
               style={css({
                 display: "flex",
                 alignItems: "center",
-                background: "#F3F5FB",
-                borderRadius: 999,
-                padding: "7px 14px",
-                boxShadow:
-                  "0 0 0 1px var(--border,rgba(255,255,255,.08)),0 0 22px rgba(34,211,238,.2)",
+                // BRAND: wordmark on transparency, no backing pill.
+                background: "transparent",
               })}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/dograh-logo.png"
+                src="/ailunapro-logo.png"
                 alt="AiLunaPro"
                 style={css({ height: 20, width: "auto", display: "block" })}
               />
@@ -812,7 +835,7 @@ export default function PricingPage() {
           </a>
 
           {wide ? (
-            <nav aria-label="Pricing sections" style={css({ display: "flex", gap: 4 })}>
+            <nav aria-label={P.pricingSections} style={css({ display: "flex", gap: 4 })}>
               {NAV.map((n) => (
                 <a
                   key={n.href}
@@ -827,18 +850,26 @@ export default function PricingPage() {
                     transition: "color .2s,background .2s",
                   })}
                 >
-                  {n.label}
+                  {P.nav[n.key]}
                 </a>
               ))}
             </nav>
           ) : null}
 
           <div
-            style={css({ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 })}
+            // BRAND: wraps on phones so the language menu + CTA never overflow.
+            style={css({
+              marginLeft: "auto",
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+              gap: 8,
+            })}
           >
             <div
               role="group"
-              aria-label="Display currency"
+              aria-label={P.displayCurrency}
               style={css({
                 display: "flex",
                 alignItems: "center",
@@ -859,7 +890,7 @@ export default function PricingPage() {
                     className="pr-ccy"
                     onClick={() => pickCurrency(c)}
                     aria-pressed={sel}
-                    title={`Show prices in ${c}`}
+                    title={P.showPricesIn(c)}
                     style={css({
                       height: "100%",
                       padding: "0 8px",
@@ -881,6 +912,7 @@ export default function PricingPage() {
                 );
               })}
             </div>
+            <LanguageMenu />
             <button
               type="button"
               className="pr-toggle"
@@ -933,7 +965,7 @@ export default function PricingPage() {
                 transition: "box-shadow .3s",
               })}
             >
-              Start free trial
+              {P.startTrial}
             </a>
           </div>
         </div>
@@ -979,7 +1011,7 @@ export default function PricingPage() {
                 animation: "pr-pulse 2.2s ease-out infinite",
               })}
             />
-            Bring your own number
+            {P.heroEyebrow}
           </span>
 
           <h1
@@ -996,7 +1028,7 @@ export default function PricingPage() {
               animation: "pr-intro .9s cubic-bezier(.16,1,.3,1) .06s both",
             })}
           >
-            Voice AI agents on the phone number{" "}
+            {P.heroTitleA}{" "}
             <span
               style={css({
                 background:
@@ -1008,7 +1040,7 @@ export default function PricingPage() {
                 animation: "pr-shift 10s cubic-bezier(.45,0,.55,1) infinite alternate",
               })}
             >
-              you already own.
+              {P.heroTitleB}
             </span>
           </h1>
 
@@ -1023,9 +1055,7 @@ export default function PricingPage() {
               animation: "pr-intro .9s cubic-bezier(.16,1,.3,1) .12s both",
             })}
           >
-            Voice AiLunaPro connects to your existing Twilio, Telnyx or SIP trunk. You keep your
-            number, your carrier contract and your per-minute telecom rate. You pay us for the
-            platform — agent building, live conversation, transcripts, CRM sync — and nothing else.
+            {P.heroBody}
           </p>
 
           <div
@@ -1052,12 +1082,12 @@ export default function PricingPage() {
               })}
             >
               <strong style={css({ color: "var(--ok,#34D399)", fontWeight: 600 })}>
-                7-day free trial
+                {P.trialStrong}
               </strong>
-              on every plan
+              {P.trialRest}
             </span>
-            <span style={pillChip}>No carrier markup</span>
-            <span style={pillChip}>Cancel anytime</span>
+            <span style={pillChip}>{P.noMarkup}</span>
+            <span style={pillChip}>{P.cancelAnytime}</span>
           </div>
         </section>
 
@@ -1098,7 +1128,7 @@ export default function PricingPage() {
               })}
             >
               <div style={css({ display: "grid", gap: 10, flex: "1 1 360px", minWidth: 0 })}>
-                <span style={eyebrow}>Plan calculator</span>
+                <span style={eyebrow}>{P.calcEyebrow}</span>
                 <h2
                   id="calc-title"
                   style={css({
@@ -1111,7 +1141,7 @@ export default function PricingPage() {
                     textWrap: "balance",
                   })}
                 >
-                  How many agent minutes do you run each month?
+                  {P.calcTitle}
                 </h2>
                 <p
                   style={css({
@@ -1122,8 +1152,7 @@ export default function PricingPage() {
                     maxWidth: 560,
                   })}
                 >
-                  Included minutes cover agent conversation time. Telephony stays on your own
-                  carrier invoice.
+                  {P.calcSub}
                 </p>
               </div>
               <div
@@ -1136,7 +1165,7 @@ export default function PricingPage() {
                 })}
               >
                 <span style={css({ fontSize: 13, color: "var(--muted,#94A3B8)" })}>
-                  Monthly usage
+                  {P.monthlyUsage}
                 </span>
                 <div style={css({ display: "flex", alignItems: "baseline", gap: 8 })}>
                   <strong
@@ -1159,7 +1188,7 @@ export default function PricingPage() {
                   <span
                     style={css({ fontSize: 16, fontWeight: 600, color: "var(--muted,#94A3B8)" })}
                   >
-                    min
+                    {P.minShort}
                   </span>
                 </div>
               </div>
@@ -1171,7 +1200,7 @@ export default function PricingPage() {
                 ref={trackRef}
                 role="slider"
                 tabIndex={0}
-                aria-label="Agent minutes per month"
+                aria-label={P.sliderLabel}
                 aria-valuemin={MIN}
                 aria-valuemax={MAX}
                 aria-valuenow={m}
@@ -1269,7 +1298,7 @@ export default function PricingPage() {
                 <span
                   style={css({ fontSize: 13, color: "var(--muted,#94A3B8)", marginRight: 4 })}
                 >
-                  Quick picks
+                  {P.quickPicks}
                 </span>
                 {presets.map((p) => (
                   <button
@@ -1345,7 +1374,7 @@ export default function PricingPage() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 3l1.9 5.8L20 10.7l-5.1 3.3L16.2 20 12 16.6 7.8 20l1.3-6L4 10.7l6.1-1.9z" />
                   </svg>
-                  Best fit for you
+                  {P.bestForYou}
                 </span>
                 <strong
                   style={css({
@@ -1380,7 +1409,7 @@ export default function PricingPage() {
                     {best.total}
                   </span>
                   <span style={css({ fontSize: 15, color: "var(--muted,#94A3B8)" })}>
-                    / month
+                    {P.perMonth}
                   </span>
                 </div>
                 <div
@@ -1389,16 +1418,16 @@ export default function PricingPage() {
                   <span
                     style={css({ display: "flex", justifyContent: "space-between", gap: 12 })}
                   >
-                    <span style={css({ color: "var(--muted,#94A3B8)" })}>Effective rate</span>
+                    <span style={css({ color: "var(--muted,#94A3B8)" })}>{P.effectiveRate}</span>
                     <strong style={css({ fontVariantNumeric: "tabular-nums" })}>
-                      {best.eff} / min
+                      {best.eff} {P.perMin}
                     </strong>
                   </span>
                   <span
                     style={css({ display: "flex", justifyContent: "space-between", gap: 12 })}
                   >
                     <span style={css({ color: "var(--muted,#94A3B8)" })}>
-                      Included minutes used
+                      {P.includedUsed}
                     </span>
                     <strong style={css({ fontVariantNumeric: "tabular-nums" })}>
                       {best.usedPct}
@@ -1409,7 +1438,7 @@ export default function PricingPage() {
                       style={css({ display: "flex", justifyContent: "space-between", gap: 12 })}
                     >
                       <span style={css({ color: "var(--muted,#94A3B8)" })}>
-                        vs {runner.name}
+                        {P.vs(runner.name)}
                       </span>
                       <strong
                         style={css({
@@ -1417,7 +1446,7 @@ export default function PricingPage() {
                           fontVariantNumeric: "tabular-nums",
                         })}
                       >
-                        {runner.save} less
+                        {P.less(runner.save)}
                       </strong>
                     </span>
                   ) : null}
@@ -1457,7 +1486,7 @@ export default function PricingPage() {
                     })}
                   />
                   <span style={css({ position: "relative" })}>
-                    Start free trial on {best.name}
+                    {P.startTrialOn(best.name)}
                   </span>
                   <svg
                     width="16"
@@ -1488,7 +1517,7 @@ export default function PricingPage() {
                     buttons, which replaced their button role and left them
                     announced as plain list items. */}
                 <ul
-                  aria-label="Monthly cost per plan"
+                  aria-label={P.costPerPlan}
                   style={css({
                     listStyle: "none",
                     margin: 0,
@@ -1542,7 +1571,7 @@ export default function PricingPage() {
                                 background: "linear-gradient(120deg,#22D3EE,#C084FC)",
                               })}
                             >
-                              BEST FIT
+                              {P.bestFitCaps}
                             </span>
                           ) : null}
                           <span style={css({ fontSize: 12, color: "var(--muted,#94A3B8)" })}>
@@ -1631,7 +1660,7 @@ export default function PricingPage() {
                         background: "linear-gradient(90deg,#7C3AED,#22D3EE)",
                       })}
                     />
-                    Subscription
+                    {P.legendSub}
                   </span>
                   <span
                     style={css({ display: "inline-flex", alignItems: "center", gap: 8 })}
@@ -1646,7 +1675,7 @@ export default function PricingPage() {
                           "repeating-linear-gradient(45deg,rgba(255,255,255,.3) 0 3px,transparent 3px 6px)",
                       })}
                     />
-                    Extra minutes
+                    {P.legendExtra}
                   </span>
                 </div>
               </div>
@@ -1668,7 +1697,7 @@ export default function PricingPage() {
             className="pr-reveal-28"
             style={css({ display: "grid", gap: 12, maxWidth: 720, marginBottom: 36 })}
           >
-            <span style={eyebrow}>Plans</span>
+            <span style={eyebrow}>{P.plansEyebrow}</span>
             <h2
               id="plans-title"
               style={css({
@@ -1681,7 +1710,7 @@ export default function PricingPage() {
                 textWrap: "balance",
               })}
             >
-              Platform minutes, billed monthly
+              {P.plansTitle}
             </h2>
             <p
               style={css({
@@ -1691,7 +1720,7 @@ export default function PricingPage() {
                 color: "var(--muted,#94A3B8)",
               })}
             >
-              Each meter shows how far {mLabel} minutes go on that plan.
+              {P.plansSub(mLabel)}
             </p>
           </div>
 
@@ -1758,7 +1787,7 @@ export default function PricingPage() {
                         boxShadow: "0 0 16px rgba(124,58,237,.5)",
                       })}
                     >
-                      Best fit
+                      {P.bestFit}
                     </span>
                   ) : null}
                 </div>
@@ -1776,7 +1805,7 @@ export default function PricingPage() {
                     {p.price}
                   </span>
                   <span style={css({ fontSize: 14, color: "var(--muted,#94A3B8)" })}>
-                    / month
+                    {P.perMonth}
                   </span>
                 </div>
 
@@ -1799,7 +1828,7 @@ export default function PricingPage() {
                     })}
                   >
                     <span style={css({ fontWeight: 600, fontVariantNumeric: "tabular-nums" })}>
-                      {p.incl} min included
+                      {P.minIncluded(p.incl)}
                     </span>
                     <span
                       style={css({
@@ -1807,12 +1836,12 @@ export default function PricingPage() {
                         fontVariantNumeric: "tabular-nums",
                       })}
                     >
-                      {p.rate} / extra
+                      {P.perExtra(p.rate)}
                     </span>
                   </div>
                   <div
                     role="progressbar"
-                    aria-label={`${p.name} included minutes used`}
+                    aria-label={P.includedUsedAria(p.name)}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={p.pctN}
@@ -1894,7 +1923,7 @@ export default function PricingPage() {
                     transition: "box-shadow .3s,border-color .3s",
                   })}
                 >
-                  Start free trial
+                  {P.startTrial}
                 </a>
               </article>
             ))}
@@ -1908,8 +1937,7 @@ export default function PricingPage() {
               color: "var(--muted,#94A3B8)",
             })}
           >
-            Prices shown in {cur} at indicative rates and charged in EUR. Prices exclude VAT.
-            Extra minutes are billed at the end of each cycle.
+            {P.plansFoot(cur)}
           </p>
         </section>
 
@@ -1928,7 +1956,7 @@ export default function PricingPage() {
               className="pr-reveal-28"
               style={css({ display: "grid", gap: 12, maxWidth: 760, marginBottom: 32 })}
             >
-              <span style={eyebrow}>Comparison</span>
+              <span style={eyebrow}>{P.compareEyebrow}</span>
               <h2
                 id="cmp-title"
                 style={css({
@@ -1941,7 +1969,7 @@ export default function PricingPage() {
                   textWrap: "balance",
                 })}
               >
-                What {mLabel} minutes a month actually costs
+                {P.compareTitle(mLabel)}
               </h2>
               <p
                 style={css({
@@ -1952,9 +1980,27 @@ export default function PricingPage() {
                   textWrap: "pretty",
                 })}
               >
-                Platform fee only. Every provider below asks you to connect your own carrier, so
-                telecom is on top in each row. Move the calculator slider to update.
+                {P.compareSub}
               </p>
+              {wins > 0 && (
+                <p
+                  style={css({
+                    marginTop: 14,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 14px",
+                    borderRadius: 999,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "var(--ok,#34D399)",
+                    border: "1px solid rgba(52,211,153,.35)",
+                    background: "rgba(52,211,153,.08)",
+                  })}
+                >
+                  ✓ {P.winHeadline(wins, COMP.length)}
+                </p>
+              )}
             </div>
 
             <div
@@ -2052,8 +2098,8 @@ export default function PricingPage() {
                       color: "var(--muted,#94A3B8)",
                     })}
                   >
-                    <span>Free trial · {c.trial}</span>
-                    <span>{c.note}</span>
+                    <span>{P.freeTrial(c.trial)}</span>
+                    <span style={css({ color: c.noteC, fontWeight: c.noteC.includes("ok") ? 600 : 400 })}>{c.note}</span>
                   </div>
                 </div>
               ))}
@@ -2066,8 +2112,7 @@ export default function PricingPage() {
                 color: "var(--muted,#94A3B8)",
               })}
             >
-              All figures above are shown in {cur}, converted at indicative rates; billing always
-              happens in EUR.
+              {P.compFoot1(cur)}
             </p>
             <p
               style={css({
@@ -2076,8 +2121,7 @@ export default function PricingPage() {
                 color: "var(--muted,#94A3B8)",
               })}
             >
-              Competitor figures are published list prices as of October 2026, quoted in USD at
-              source, and move with usage mix.
+              {P.compFoot2}
             </p>
           </section>
         ) : null}
@@ -2095,7 +2139,7 @@ export default function PricingPage() {
             className="pr-reveal-28"
             style={css({ display: "grid", gap: 12, maxWidth: 720, marginBottom: 32 })}
           >
-            <span style={eyebrow}>Why bring your own number</span>
+            <span style={eyebrow}>{P.whyEyebrow}</span>
             <h2
               id="byon-title"
               style={css({
@@ -2107,7 +2151,7 @@ export default function PricingPage() {
                 letterSpacing: "-.025em",
               })}
             >
-              Your carrier stays yours
+              {P.whyTitle}
             </h2>
           </div>
 
@@ -2119,7 +2163,7 @@ export default function PricingPage() {
               gap: 16,
             })}
           >
-            {WHY.map((w) => (
+            {WHY.map((icon, wi) => ({ icon: icon.icon, ...P.why[wi] })).map((w) => (
               <article
                 key={w.t}
                 className="pr-why"
@@ -2210,7 +2254,7 @@ export default function PricingPage() {
               marginBottom: 32,
             })}
           >
-            <span style={eyebrow}>Questions</span>
+            <span style={eyebrow}>{P.faqEyebrow}</span>
             <h2
               id="faq-title"
               style={css({
@@ -2222,7 +2266,7 @@ export default function PricingPage() {
                 letterSpacing: "-.025em",
               })}
             >
-              Before you start the trial
+              {P.faqTitle}
             </h2>
           </div>
 
@@ -2344,14 +2388,12 @@ export default function PricingPage() {
             <span
               style={css({
                 display: "flex",
-                background: "#F3F5FB",
-                borderRadius: 999,
-                padding: "6px 12px",
+                background: "transparent",
               })}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/dograh-logo.png"
+                src="/ailunapro-logo.png"
                 alt="AiLunaPro"
                 style={css({ height: 18, width: "auto", display: "block" })}
               />
@@ -2369,7 +2411,7 @@ export default function PricingPage() {
             </span>
           </a>
           <span style={css({ fontSize: 14, color: "var(--muted,#94A3B8)" })}>
-            voice.ailunapro.com · Support:{" "}
+            voice.ailunapro.com · {P.footerSupport}{" "}
             <a href="mailto:service@ailunapro.com">service@ailunapro.com</a>
           </span>
         </div>

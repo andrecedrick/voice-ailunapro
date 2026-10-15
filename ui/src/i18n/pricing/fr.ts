@@ -1,0 +1,128 @@
+import type { PricingDict } from "./en";
+
+export const pricingFr: PricingDict = {
+  nav: { calculator: "Calculateur", plans: "Plans", compare: "Comparer", faq: "FAQ" },
+  pricingSections: "Sections de la page tarifs",
+  displayCurrency: "Devise d'affichage",
+  showPricesIn: (c) => `Afficher les prix en ${c}`,
+  switchDark: "Passer au thème sombre",
+  switchLight: "Passer au thème clair",
+  startTrial: "Essai gratuit",
+  heroEyebrow: "Gardez votre numéro",
+  heroTitleA: "Des agents vocaux IA sur le numéro",
+  heroTitleB: "que vous avez déjà.",
+  heroBody:
+    "Voice AiLunaPro se connecte à votre Twilio, Telnyx ou trunk SIP existant. Vous gardez votre numéro, votre contrat opérateur et votre tarif télécom à la minute. Vous nous payez la plateforme — création d'agents, conversation en direct, transcriptions, synchro CRM — et rien d'autre.",
+  trialStrong: "7 jours d'essai gratuit",
+  trialRest: "sur tous les plans",
+  noMarkup: "Aucune marge sur la télécom",
+  cancelAnytime: "Résiliable à tout moment",
+  calcEyebrow: "Calculateur de plan",
+  calcTitle: "Combien de minutes d'agent utilisez-vous par mois ?",
+  calcSub: "Les minutes incluses couvrent le temps de conversation de l'agent. La téléphonie reste sur la facture de votre opérateur.",
+  monthlyUsage: "Usage mensuel",
+  minShort: "min",
+  quickPicks: "Choix rapides",
+  sliderLabel: "Minutes d'agent par mois",
+  sliderValue: (m, plan, price) => `${m} minutes par mois — plan idéal ${plan} à ${price} par mois`,
+  bestForYou: "Le plus adapté pour vous",
+  perMonth: "/ mois",
+  effectiveRate: "Coût réel",
+  perMin: "/ min",
+  includedUsed: "Minutes incluses utilisées",
+  vs: (name) => `vs ${name}`,
+  less: (amount) => `${amount} de moins`,
+  startTrialOn: (plan) => `Essai gratuit sur ${plan}`,
+  costPerPlan: "Coût mensuel par plan",
+  bestFitCaps: "IDÉAL",
+  flat: (price) => `${price} forfait`,
+  baseTxt: (used, incl) => `${used} sur ${incl} min incluses`,
+  overTxt: (amount) => `+${amount} de minutes en plus`,
+  spareTxt: (n) => `${n} min de marge`,
+  legendSub: "Abonnement",
+  legendExtra: "Minutes supplémentaires",
+  plansEyebrow: "Plans",
+  plansTitle: "Minutes de plateforme, facturées au mois",
+  plansSub: (m) => `Chaque jauge montre jusqu'où vont ${m} minutes sur ce plan.`,
+  bestFit: "Idéal",
+  minIncluded: (n) => `${n} min incluses`,
+  perExtra: (rate) => `${rate} / min en plus`,
+  includedUsedAria: (plan) => `Minutes incluses utilisées sur ${plan}`,
+  meterOver: (n, amount) => `${n} min au-delà · +${amount}`,
+  meterPct: (p) => `${p} % des minutes incluses`,
+  plansFoot: (cur) =>
+    `Prix affichés en ${cur} à titre indicatif et facturés en EUR. Prix hors TVA. Les minutes supplémentaires sont facturées en fin de cycle.`,
+  compareEyebrow: "Comparaison",
+  compareTitle: (m) => `Ce que coûtent vraiment ${m} minutes par mois`,
+  compareSub:
+    "Voice AiLunaPro inclut la plateforme et les modèles d'IA ; votre opérateur facture la téléphonie au prix coûtant (environ 0,01 €/min). Les lignes concurrentes reprennent leurs fourchettes tout compris publiées. Déplacez le curseur pour comparer à votre volume.",
+  ourName: (plan) => `Voice AiLunaPro — ${plan}`,
+  ourModel: (incl) => `Abonnement fixe, ${incl} min incluses`,
+  ourNote: "Meilleur plan à ce volume",
+  freeTrial: (t) => `Essai gratuit · ${t}`,
+  ourTrial: "7 jours",
+  cheaperThanTypical: (p) => `${p} % sous leur coût habituel`,
+  withinRange: "Dans leur fourchette",
+  rangeNote: "La fourchette dépend des modèles choisis",
+  winHeadline: (n, total) =>
+    n === total
+      ? "Moins cher que le coût habituel de toutes les alternatives à ce volume"
+      : `Moins cher que le coût habituel de ${n} alternatives sur ${total} à ce volume`,
+  competitors: {
+    vapi: { model: "Frais de plateforme + modèles et voix refacturés", trial: "Crédit de départ" },
+    retell: { model: "À la minute, infra + modèles", trial: "Crédit de départ" },
+    bland: { model: "À la minute, tout compris", trial: "Offre gratuite limitée" },
+    synthflow: { model: "Paiement à l'usage · marque blanche dès 2 000 $/mois", trial: "Crédit de départ" },
+  },
+  compFoot1: (cur) =>
+    `Tous les montants sont affichés en ${cur}, convertis à titre indicatif ; la facturation se fait toujours en EUR.`,
+  compFoot2:
+    "Les chiffres concurrents sont leurs fourchettes tout compris publiées en octobre 2026, en USD à la source ; ils varient selon les modèles, voix et téléphonie choisis.",
+  whyEyebrow: "Pourquoi garder votre numéro",
+  whyTitle: "Votre opérateur reste le vôtre",
+  why: [
+    {
+      t: "Gardez le numéro que vos clients connaissent",
+      d: "Faites pointer votre numéro existant vers Voice AiLunaPro. Rien ne change sur vos supports imprimés, votre fiche Google ou vos signatures.",
+    },
+    {
+      t: "La télécom au prix coûtant",
+      d: "Les minutes opérateur restent sur votre facture Twilio, Telnyx ou Zadarma, au tarif que vous avez négocié. Aucune marge : nous ne touchons jamais à la ligne d'appel.",
+    },
+    {
+      t: "Partez sans migration",
+      d: "Le numéro, les enregistrements et le compte opérateur vous appartiennent. Déconnecter l'agent tient en un réglage.",
+    },
+  ],
+  faqEyebrow: "Questions",
+  faqTitle: "Avant de démarrer l'essai",
+  faq: [
+    [
+      "Que comprend l'essai de 7 jours ?",
+      "L'accès complet au plan choisi, avec un nombre de minutes d'essai plafonné pour qu'une boucle incontrôlée ne puisse pas facturer votre opérateur. Une carte est demandée ; rien n'est prélevé avant le 8e jour et vous pouvez résilier en un clic avant.",
+    ],
+    [
+      "Qu'est-ce qu'une minute de plateforme ?",
+      "Le temps pendant lequel l'agent est connecté à un appel, entrant ou sortant, compté par minute entamée. Les appels qui n'aboutissent pas ne sont pas comptés.",
+    ],
+    [
+      "Puis-je utiliser ma propre clé OpenAI ou Gemini ?",
+      "Oui, sur Business et Agency. Connectez votre clé : l'inférence des modèles quitte votre facture chez nous et passe sur votre compte fournisseur.",
+    ],
+    [
+      "Quels opérateurs fonctionnent ?",
+      "Tout ce qui termine du SIP : Twilio, Telnyx, Vonage, Zadarma, OVH, un PBX local. Si votre opérateur vous donne des identifiants SIP, l'agent peut y répondre.",
+    ],
+    [
+      "Quelles langues l'agent parle-t-il ?",
+      "Français, anglais, espagnol, portugais et une vingtaine d'autres, et le même agent peut changer de langue en cours d'appel quand l'appelant le fait. Cette page et l'application existent en 8 langues.",
+    ],
+  ],
+  plans: {
+    Starter: ["2 appels simultanés", "1 agent vocal", "Entrant et sortant", "Transcriptions et résumés d'appels", "Support par e-mail"],
+    Pro: ["10 appels simultanés", "5 agents vocaux", "Webhooks et synchro CRM", "Voix personnalisée et base de connaissances", "Tableau de bord d'analyse des appels"],
+    Business: ["30 appels simultanés", "Agents illimités", "Votre propre clé LLM", "Routage et support prioritaires", "Espace d'équipe partagé"],
+    Agency: ["100 appels simultanés", "Un sous-compte par client", "Domaine et marque blanche", "Onboarding dédié", "SLA sur demande"],
+  },
+  footerSupport: "Support :",
+};

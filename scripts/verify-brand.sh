@@ -86,6 +86,11 @@ exists "$(ui public/ailunapro-logo.png)"       "Wordmark."
 exists "$(ui public/ailunapro-mark.png)"       "Square icon."
 exists "$(ui src/lib/productVersion.ts)"       "Our version numbering, separate from Dograh's."
 exists "$(ui src/app/pricing/page.tsx)"        "Public pricing page."
+exists "$(ui src/i18n/pricing/index.ts)"       "Pricing-page translations."
+contains "$(ui src/app/pricing/page.tsx)" "pricingCopy(locale)" \
+  "Pricing page reads its copy from the 8-language dictionaries."
+contains "$(ui src/lib/auth/providers/LocalProviderWrapper.tsx)" "'/pricing'" \
+  "Logged-out visitors can see /pricing without being sent to the login form."
 exists "$(ui src/i18n/config.ts)"            "Language list and English default."
 exists "$(ui src/i18n/dictionaries/en.ts)"   "Reference dictionary; every language is typed against it."
 exists "$(ui src/components/brand/AppTopbar.tsx)" "Template top bar: breadcrumb, ⌘K, language, theme, New agent."
