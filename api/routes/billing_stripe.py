@@ -23,6 +23,7 @@ from api.services.billing import (
     is_enabled,
     list_plans,
     plan_by_id,
+    stripe_error_message,
     verify_webhook_signature,
 )
 
@@ -165,14 +166,11 @@ async def start_checkout(
             trial_days=trial_days,
         )
     except Exception as e:
-        logger.error(
-            "Could not open checkout for org {}: {}",
-            organization_id,
-            e,
-        )
-        raise HTTPException(
-            status_code=502, detail="Could not reach Stripe. Please try again."
-        )
+        reason = stripe_error_message(e)
+        logger.error("Could not open checkout for org {}: {}", organization_id, reason)
+        # 424, not 502: reverse proxies swap 5xx bodies for their own page
+        # (no CORS headers), and the browser then only sees "Failed to fetch".
+        raise HTTPException(status_code=424, detail=f"Stripe: {reason}")
 
     return CheckoutResponse(url=url)
 
@@ -196,14 +194,13 @@ async def open_customer_portal(
             return_url=f"{UI_APP_URL.rstrip('/')}/billing",
         )
     except Exception as e:
+        reason = stripe_error_message(e)
         logger.error(
             "Could not open the customer portal for org {}: {}",
             user.selected_organization_id,
-            e,
+            reason,
         )
-        raise HTTPException(
-            status_code=502, detail="Could not reach Stripe. Please try again."
-        )
+        raise HTTPException(status_code=424, detail=f"Stripe: {reason}")
 
     return CheckoutResponse(url=url)
 

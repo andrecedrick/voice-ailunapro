@@ -13,6 +13,7 @@ from api.services.billing.stripe_billing import (
     handle_stripe_event,
     is_enabled,
     report_run_minutes,
+    stripe_error_message,
     verify_webhook_signature,
 )
 
@@ -27,5 +28,6 @@ __all__ = [
     "handle_stripe_event",
     "is_enabled",
     "report_run_minutes",
+    "stripe_error_message",
     "verify_webhook_signature",
 ]

@@ -86,3 +86,20 @@ def test_overage_on_its_own_product_is_linked_and_preferred(monkeypatch):
     assert pro.metered_price_id == "price_P_o"
     assert (pro.included_minutes, pro.overage_per_minute) == (1500, "11")
     assert asyncio.run(plans_mod.plan_for_price("price_P_o")).id == "prod_P"
+
+
+def test_stripe_error_message_is_readable_and_redacted():
+    import httpx
+
+    from api.services.billing import stripe_error_message
+
+    req = httpx.Request("POST", "https://api.stripe.com/v1/checkout/sessions")
+    res = httpx.Response(
+        400,
+        request=req,
+        json={"error": {"code": "resource_missing", "param": "line_items[1][price]",
+                        "message": "No such price for key rk_live_abc123XYZ"}},
+    )
+    msg = stripe_error_message(httpx.HTTPStatusError("x", request=req, response=res))
+    assert "resource_missing" in msg and "line_items[1][price]" in msg
+    assert "rk_live_abc123XYZ" not in msg and "[REDACTED_KEY]" in msg

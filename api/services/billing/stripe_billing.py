@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import re
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -89,6 +90,32 @@ async def _get(path: str) -> dict:
         response = await client.get(f"{STRIPE_API_BASE}{path}", headers=_headers())
     response.raise_for_status()
     return response.json()
+
+
+_KEY_RE = re.compile(r"\b(sk|rk|pk|whsec)_(live|test)?_?[A-Za-z0-9*]{4,}")
+
+
+def stripe_error_message(error: Exception) -> str:
+    """Stripe's own explanation of a failed call, safe to log and show.
+
+    Stripe answers errors with ``{"error": {"code", "message", "param"}}``.
+    Without this, logs only carried "400 Bad Request" and the browser a generic
+    toast. Anything shaped like an API key is redacted.
+    """
+    if isinstance(error, httpx.HTTPStatusError):
+        try:
+            body = error.response.json().get("error") or {}
+        except ValueError:
+            body = {}
+        parts = [body.get("code"), body.get("param"), body.get("message")]
+        text = " · ".join(str(p) for p in parts if p) or (
+            f"HTTP {error.response.status_code}"
+        )
+    elif isinstance(error, httpx.TransportError):
+        text = f"network error ({type(error).__name__})"
+    else:
+        text = type(error).__name__
+    return _KEY_RE.sub("[REDACTED_KEY]", text)[:400]
 
 
 # --------------------------------------------------------------------------
