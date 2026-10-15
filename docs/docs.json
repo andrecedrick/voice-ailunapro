@@ -316,10 +316,6 @@
     {
       "source": "/voice-agent/tools",
       "destination": "/voice-agent/tools/introduction"
-    },
-    {
-      "source": "/getting-started",
-      "destination": "/getting-started/index"
     }
   ]
 }
