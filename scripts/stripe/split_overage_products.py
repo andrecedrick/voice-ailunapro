@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -86,6 +87,9 @@ def main() -> None:
     ap.add_argument("--apply", action="store_true", help="write to Stripe")
     ap.add_argument("--archive-old", action="store_true",
                     help="archive metered prices left on plan products")
+    ap.add_argument("--fix-minutes", action="store_true",
+                    help="align the minutes quoted in each plan description "
+                         "with the free tier actually billed")
     args = ap.parse_args()
 
     products = call("GET", "/v1/products?active=true&limit=100")["data"]
@@ -116,6 +120,17 @@ def main() -> None:
         unit = paid.get("unit_amount_decimal") or paid.get("unit_amount")
         print(f"- {name}: {old['id']} meter={rec.get('meter')} "
               f"included={included} overage={eur(unit)}/min")
+        desc = plan.get("description") or ""
+        print(f"    description: {desc}")
+        quoted = re.match(r"\s*([\d,. ]+)\s+AI voice agent minutes", desc)
+        if quoted and int(re.sub(r"\D", "", quoted.group(1))) != included:
+            print(f"    MISMATCH: description says {quoted.group(1).strip()}, "
+                  f"billing includes {included}")
+            if args.fix_minutes:
+                fixed = desc[:quoted.start(1)] + f"{included:,}" + desc[quoted.end(1):]
+                if args.apply:
+                    call("POST", f"/v1/products/{plan['id']}", {"description": fixed})
+                print(f"    {'fixed' if args.apply else 'would fix'} -> {fixed[:60]}...")
 
         if args.archive_old:
             if plan["id"] not in linked:
