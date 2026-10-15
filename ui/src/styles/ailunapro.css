@@ -5,64 +5,66 @@
    THIS FILE IS OURS. Dograh upstream does not have it, so `git merge
    upstream/main` can never conflict on it and no Dograh release can overwrite
    the design. Everything that makes the app look like Voice AiLunaPro rather
-   than Dograh lives here — palette, glass surfaces, grid, halos, sidebar dock,
-   cards, tables, inputs, typography.
+   than Dograh lives here.
 
    It is pulled in by exactly ONE line in src/app/layout.tsx, placed AFTER
    globals.css so these rules win every same-specificity tie:
 
        import "../styles/ailunapro.css";
 
-   That single import is the only thing an upgrade can break, and
+   That import is the only thing an upgrade can break, and
    scripts/verify-brand.sh fails the build if it goes missing. See BRAND.md.
 
-   HOW IT WORKS (deliberately): nothing here touches a component. It restyles
-   the app through
+   HOW IT WORKS: nothing here names a Dograh screen. It restyles the app through
      - the shadcn design tokens (--background, --card, --primary, …), and
      - the stable `data-slot` hooks the shadcn primitives already emit,
-   so new Dograh screens inherit the design automatically instead of needing to
-   be ported one by one.
+   so a screen Dograh adds in a future release arrives already wearing it.
 
-   Rules below sit OUTSIDE @layer on purpose: the elements they restyle carry
-   Tailwind utility classes (bg-card, border-border/60, bg-background/70), and
-   utilities live in a later cascade layer than @layer components — un-layered
-   author CSS beats both.
+   Rules sit OUTSIDE @layer on purpose: the elements they restyle carry Tailwind
+   utility classes, and utilities live in a later cascade layer than
+   @layer components — un-layered author CSS beats both.
 
-   Palette taken verbatim from the AiLunaPro_Voice_Dashboard template:
-     ink #070912 · cyan #22D3EE · violet #8B5CF6 · paper #F2F4FA
+   Palette from the AiLunaPro_Voice_Dashboard template:
+     ink #070912 · cyan #22D3EE · violet #8B5CF6 · paper #F4F6FB
 =========================================================================== */
 
 /* --- 1. Tokens ----------------------------------------------------------- */
 
 :root {
-  /* Raw brand scale — referenced by the rules further down. */
   --al-ink: #070912;
   --al-cyan: #22d3ee;
+  --al-cyan-soft: #7de9f7;
   --al-cyan-deep: #0e7490;
   --al-violet: #8b5cf6;
+  --al-violet-soft: #a78bfa;
   --al-emerald: #34d399;
   --al-amber: #fbbf24;
   --al-rose: #f87171;
 
-  /* Light theme (the template's `light`). */
-  --al-bg: #f2f4fa;
-  --al-surface: rgba(255, 255, 255, 0.8);
-  --al-surface-2: rgba(236, 240, 248, 0.92);
-  --al-sidebar: rgba(255, 255, 255, 0.86);
-  --al-topbar: rgba(242, 244, 250, 0.78);
-  --al-pop: rgba(255, 255, 255, 0.98);
-  --al-border: rgba(30, 40, 90, 0.12);
-  --al-text: #0f172a;
-  --al-muted: #4f5a73;
+  /* The signature gradient: buttons, rails, the active nav mark. */
+  --al-grad: linear-gradient(120deg, #22d3ee 0%, #7de9f7 45%, #a78bfa 100%);
+  --al-grad-line: linear-gradient(90deg, #8b5cf6, #22d3ee);
+
+  /* Light theme — paper, white glass, deep cyan accent. */
+  --al-bg: #f4f6fb;
+  --al-surface: rgba(255, 255, 255, 0.82);
+  --al-surface-2: rgba(236, 240, 248, 0.9);
+  --al-sidebar: rgba(255, 255, 255, 0.78);
+  --al-topbar: rgba(244, 246, 251, 0.72);
+  --al-pop: rgba(255, 255, 255, 0.97);
+  --al-border: rgba(15, 23, 42, 0.08);
+  --al-border-strong: rgba(15, 23, 42, 0.14);
+  --al-text: #0b1222;
+  --al-muted: #556079;
   --al-accent: var(--al-cyan-deep);
-  --al-grid: rgba(30, 40, 90, 0.06);
-  --al-blob-1: rgba(139, 92, 246, 0.14);
+  --al-grid: rgba(30, 40, 90, 0.045);
+  --al-blob-1: rgba(139, 92, 246, 0.12);
   --al-blob-2: rgba(34, 211, 238, 0.14);
   --al-ok: #047857;
   --al-warn: #b45309;
+  --al-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 36px -18px rgba(15, 23, 42, 0.18);
+  --al-shadow-lg: 0 30px 80px -30px rgba(15, 23, 42, 0.35);
 
-  /* shadcn tokens remapped onto the scale above. Every primitive in the app
-     reads these, so the whole surface follows without edits. */
   --background: var(--al-bg);
   --foreground: var(--al-text);
   --card: var(--al-surface);
@@ -70,21 +72,21 @@
   --popover: var(--al-pop);
   --popover-foreground: var(--al-text);
   --primary: var(--al-cyan-deep);
-  --primary-foreground: #f6fdff;
+  --primary-foreground: #04212b;
   --secondary: var(--al-surface-2);
   --secondary-foreground: var(--al-text);
   --muted: var(--al-surface-2);
   --muted-foreground: var(--al-muted);
-  --accent: rgba(14, 116, 144, 0.1);
+  --accent: rgba(14, 116, 144, 0.08);
   --accent-foreground: var(--al-text);
   --border: var(--al-border);
-  --input: var(--al-border);
+  --input: var(--al-border-strong);
   --ring: var(--al-cyan-deep);
   --sidebar: var(--al-sidebar);
   --sidebar-foreground: var(--al-text);
   --sidebar-primary: var(--al-cyan-deep);
   --sidebar-primary-foreground: #f6fdff;
-  --sidebar-accent: rgba(14, 116, 144, 0.1);
+  --sidebar-accent: rgba(14, 116, 144, 0.08);
   --sidebar-accent-foreground: var(--al-text);
   --sidebar-border: var(--al-border);
   --sidebar-ring: var(--al-cyan-deep);
@@ -94,41 +96,41 @@
   --chart-4: var(--al-amber);
   --chart-5: var(--al-rose);
 
-  /* The one accent used on primary CTAs, focus rings and the active nav mark.
-     Upstream points it at an amber; ours is the brand cyan. */
   --cta: var(--al-cyan-deep);
   --cta-foreground: #04212b;
 
-  /* Kills Dograh's giant faded "dograh" wordmark, which .app-surface and the
-     auth shell paint from this variable. Our canvas is grid + halos instead. */
+  /* Kills Dograh's giant faded "dograh" wordmark. */
   --brand-imprint: none;
 
-  --radius: 0.75rem;
+  --radius: 0.875rem;
 
-  /* Type. The two faces are loaded by next/font in src/app/layout.tsx, which
-     publishes --font-inter and --font-sora; the fallbacks keep the app
-     readable if that patch is ever lost in an upgrade. */
-  --al-font-body: var(--font-inter), var(--font-geist-sans), ui-sans-serif,
-    system-ui, sans-serif;
+  /* Faces loaded by next/font in layout.tsx; fallbacks keep the app readable
+     if that patch is ever lost in an upgrade. */
+  --al-font-body: var(--font-inter), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --al-font-display: var(--font-sora), var(--al-font-body);
+
+  --al-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark {
   --al-bg: var(--al-ink);
   --al-surface: rgba(14, 18, 32, 0.62);
-  --al-surface-2: rgba(19, 26, 46, 0.7);
-  --al-sidebar: rgba(10, 13, 24, 0.8);
+  --al-surface-2: rgba(19, 26, 46, 0.72);
+  --al-sidebar: rgba(10, 13, 24, 0.78);
   --al-topbar: rgba(7, 9, 18, 0.6);
-  --al-pop: rgba(14, 18, 32, 0.96);
-  --al-border: rgba(140, 160, 255, 0.12);
-  --al-text: #e6eaf5;
+  --al-pop: rgba(12, 16, 30, 0.96);
+  --al-border: rgba(140, 160, 255, 0.11);
+  --al-border-strong: rgba(140, 160, 255, 0.2);
+  --al-text: #e8ecf7;
   --al-muted: #8a93ad;
   --al-accent: var(--al-cyan);
-  --al-grid: rgba(140, 160, 255, 0.05);
-  --al-blob-1: rgba(139, 92, 246, 0.2);
+  --al-grid: rgba(140, 160, 255, 0.045);
+  --al-blob-1: rgba(139, 92, 246, 0.22);
   --al-blob-2: rgba(34, 211, 238, 0.13);
   --al-ok: var(--al-emerald);
   --al-warn: var(--al-amber);
+  --al-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 24px 54px -30px rgba(0, 0, 0, 0.9);
+  --al-shadow-lg: 0 40px 100px -30px rgba(0, 0, 0, 0.85);
 
   --background: var(--al-bg);
   --foreground: var(--al-text);
@@ -142,16 +144,16 @@
   --secondary-foreground: var(--al-text);
   --muted: var(--al-surface-2);
   --muted-foreground: var(--al-muted);
-  --accent: rgba(34, 211, 238, 0.1);
+  --accent: rgba(34, 211, 238, 0.09);
   --accent-foreground: var(--al-text);
   --border: var(--al-border);
-  --input: rgba(140, 160, 255, 0.18);
+  --input: var(--al-border-strong);
   --ring: var(--al-cyan);
   --sidebar: var(--al-sidebar);
   --sidebar-foreground: var(--al-text);
   --sidebar-primary: var(--al-cyan);
   --sidebar-primary-foreground: #05131a;
-  --sidebar-accent: rgba(34, 211, 238, 0.1);
+  --sidebar-accent: rgba(34, 211, 238, 0.09);
   --sidebar-accent-foreground: var(--al-text);
   --sidebar-border: var(--al-border);
   --sidebar-ring: var(--al-cyan);
@@ -166,56 +168,59 @@
   --brand-imprint: none;
 }
 
-/* --- 2. Canvas ----------------------------------------------------------- */
+/* --- 2. Canvas & type ---------------------------------------------------- */
 
-/* The page itself carries the ink/paper colour so there is no flash of the
-   upstream charcoal before .app-surface paints. */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 body {
   background-color: var(--al-bg);
   color: var(--al-text);
   font-family: var(--al-font-body);
+  font-feature-settings: "cv11", "ss01";
 }
 
-/* Display face on headings and KPI figures — the template's Sora. Loaded in
-   src/app/layout.tsx as --font-display. */
+::selection {
+  background: color-mix(in oklab, var(--al-cyan) 32%, transparent);
+}
+
 h1,
 h2,
 h3,
 .al-display {
   font-family: var(--al-font-display);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 
-/* Main content canvas: a faint 32px graph grid plus two soft colour halos,
-   replacing Dograh's bottom-pinned wordmark. background-attachment: fixed
-   keeps the halos still while content scrolls, so the canvas reads as depth
-   rather than as a pattern glued to the page. */
+/* Page titles from PageLayout: display face, fluid size, quieter weight. */
+.app-surface h1.text-3xl {
+  font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.app-surface h1.text-3xl + p {
+  font-size: 0.975rem;
+  max-width: 62ch;
+}
+
+/* Grid + two colour halos, fixed so content scrolls over depth. */
 .app-surface {
   background-color: var(--al-bg);
   background-image:
-    radial-gradient(
-      60rem 40rem at 82% -10%,
-      var(--al-blob-1) 0%,
-      transparent 70%
-    ),
-    radial-gradient(
-      52rem 34rem at 8% 108%,
-      var(--al-blob-2) 0%,
-      transparent 72%
-    ),
+    radial-gradient(62rem 40rem at 85% -12%, var(--al-blob-1) 0%, transparent 70%),
+    radial-gradient(54rem 36rem at 5% 110%, var(--al-blob-2) 0%, transparent 72%),
     linear-gradient(to right, var(--al-grid) 1px, transparent 1px),
     linear-gradient(to bottom, var(--al-grid) 1px, transparent 1px);
-  background-size:
-    auto,
-    auto,
-    32px 32px,
-    32px 32px;
+  background-size: auto, auto, 32px 32px, 32px 32px;
   background-position: 0 0;
   background-repeat: no-repeat, no-repeat, repeat, repeat;
-  background-attachment: fixed, fixed, fixed, fixed;
+  background-attachment: fixed;
 }
 
-/* The halos are decoration; drop them where motion/contrast settings ask. */
 @media (prefers-contrast: more) {
   .app-surface {
     background-image:
@@ -225,121 +230,389 @@ h3,
   }
 }
 
-/* Auth pages: same canvas, element-relative (no fixed attachment) so it
-   centres on whatever column carries the class. */
+/* Page content rises in on navigation. */
+main.app-surface > div {
+  animation: al-rise 0.6s var(--al-ease) both;
+}
+
+/* Wider gutters from tablet up; PageShell ships a flat px-4. */
+@media (min-width: 768px) {
+  main.app-surface > .mx-auto {
+    padding-inline: clamp(1.5rem, 3vw, 2.75rem);
+    padding-block: 2.25rem 3rem;
+  }
+}
+
+@keyframes al-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .auth-imprint {
   background-image:
-    radial-gradient(
-      44rem 30rem at 50% 0%,
-      var(--al-blob-1) 0%,
-      transparent 70%
-    ),
-    radial-gradient(
-      38rem 26rem at 50% 100%,
-      var(--al-blob-2) 0%,
-      transparent 72%
-    );
-  background-size: auto;
+    radial-gradient(44rem 30rem at 50% -5%, var(--al-blob-1) 0%, transparent 70%),
+    radial-gradient(38rem 26rem at 50% 105%, var(--al-blob-2) 0%, transparent 72%),
+    linear-gradient(to right, var(--al-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--al-grid) 1px, transparent 1px);
+  background-size: auto, auto, 32px 32px, 32px 32px;
+  background-repeat: no-repeat, no-repeat, repeat, repeat;
   background-position: center;
-  background-repeat: no-repeat;
 }
 
 /* --- 3. Cards ------------------------------------------------------------ */
 
-/* Frosted glass instead of Dograh's crosshatch twill. .card-weave is applied
-   by components/ui/card.tsx to every Card in the app, which is why this one
-   rule reskins every screen — including Dograh screens we have never opened. */
+/* .card-weave is applied by components/ui/card.tsx to every Card, so this one
+   rule reskins every screen, including Dograh screens we have never opened. */
 .card-weave {
   background-image: none;
-  border-radius: 1rem;
+  border-radius: 1.125rem;
   border-color: var(--al-border);
   background-color: var(--al-surface);
-  backdrop-filter: blur(22px) saturate(1.1);
-  -webkit-backdrop-filter: blur(22px) saturate(1.1);
-  box-shadow: 0 18px 40px -28px rgba(3, 5, 12, 0.5);
+  backdrop-filter: blur(22px) saturate(1.15);
+  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  box-shadow: var(--al-shadow);
+  transition:
+    border-color 0.25s,
+    box-shadow 0.35s var(--al-ease),
+    transform 0.35s var(--al-ease);
 }
 
 .dark .card-weave {
   background-image: none;
-  /* Light catching the top edge of the panel, as in the template. */
-  border-top-color: rgba(140, 160, 255, 0.22);
+  border-top-color: rgba(140, 160, 255, 0.2);
+}
+
+/* Cards that are links lift and glow. */
+a.card-weave:hover,
+button.card-weave:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--al-cyan) 40%, transparent);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 24px 54px -30px rgba(0, 0, 0, 0.9);
+    var(--al-shadow),
+    0 0 0 1px color-mix(in oklab, var(--al-cyan) 14%, transparent),
+    0 18px 40px -22px color-mix(in oklab, var(--al-cyan) 55%, transparent);
 }
 
-/* Hover lift on cards that are themselves links or buttons. */
-.card-weave:is(a, button):hover {
-  border-color: color-mix(in oklab, var(--cta) 42%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--cta) 18%, transparent);
+/* --- 4. Buttons ---------------------------------------------------------- */
+
+[data-slot="button"] {
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition:
+    filter 0.2s,
+    box-shadow 0.3s,
+    transform 0.15s,
+    background-color 0.2s,
+    border-color 0.2s;
 }
 
-/* --- 4. Sidebar dock ----------------------------------------------------- */
+[data-slot="button"]:active:not(:disabled) {
+  transform: scale(0.98);
+}
 
-.app-sidebar-dock [data-slot="sidebar-inner"] {
-  border-radius: 1.25rem;
+/* Every primary button in the app wears the signature gradient. */
+[data-slot="button"].bg-primary {
+  background-image: var(--al-grad);
+  color: #05131a;
+  border: 0;
+  box-shadow: 0 8px 24px -10px color-mix(in oklab, var(--al-cyan) 70%, transparent);
+}
+
+[data-slot="button"].bg-primary:hover:not(:disabled) {
+  filter: brightness(1.06) saturate(1.05);
+  box-shadow: 0 10px 32px -8px color-mix(in oklab, var(--al-cyan) 80%, transparent);
+}
+
+/* Outline buttons become glass. */
+[data-slot="button"].border.bg-background,
+.dark [data-slot="button"].border.bg-background {
+  background-color: var(--al-surface);
+  border-color: var(--al-border-strong);
+  backdrop-filter: blur(12px);
+}
+
+[data-slot="button"].border.bg-background:hover:not(:disabled) {
+  border-color: color-mix(in oklab, var(--al-cyan) 45%, transparent);
+  background-color: var(--al-surface-2);
+}
+
+/* Focus ring, everywhere. */
+:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--al-cyan) 70%, transparent);
+  outline-offset: 2px;
+}
+
+/* --- 5. Sidebar dock ----------------------------------------------------- */
+
+.app-sidebar-dock [data-slot="sidebar-inner"],
+.dark .app-sidebar-dock [data-slot="sidebar-inner"] {
+  border-radius: 1.375rem;
   border-color: var(--al-border);
   background-color: var(--al-sidebar);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  box-shadow: var(--al-shadow);
   overflow: hidden;
 }
 
-/* Override upstream's carbon panel + left-edge glow with the brand glass. */
-.dark .app-sidebar-dock [data-slot="sidebar-inner"] {
-  border-color: var(--al-border);
-  background-color: var(--al-sidebar);
-  box-shadow:
-    inset 1px 0 0 rgba(140, 160, 255, 0.1),
-    0 24px 50px -16px rgba(0, 0, 0, 0.85);
+/* Mobile: the sidebar opens as a sheet — same glass. */
+[data-slot="sidebar"][data-mobile="true"] {
+  background-color: var(--al-pop);
+  backdrop-filter: blur(24px);
 }
 
-/* Section labels: small, wide, quiet — the template's "BUILD" / "MANAGE". */
 .app-sidebar-dock [data-slot="sidebar-group-label"] {
   font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   color: var(--al-muted);
 }
 
-/* Nav rows. The active row in the template is a cyan-tinted pill with a cyan
-   rail on its left edge; upstream hardcodes an amber glow on the icon, which
-   the filter reset below removes. */
 .app-sidebar-dock [data-slot="sidebar-menu-button"] {
   border-radius: 0.875rem;
+  height: 2.375rem;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--al-text) 82%, transparent);
   transition:
     background-color 0.18s,
-    color 0.18s,
-    border-color 0.18s;
+    color 0.18s;
+}
+
+.app-sidebar-dock [data-slot="sidebar-menu-button"]:hover {
+  color: var(--al-text);
 }
 
 .app-sidebar-dock [data-slot="sidebar-menu-button"] svg {
   filter: none;
+  opacity: 0.85;
 }
 
-.app-sidebar-dock [data-slot="sidebar-menu-button"][data-active="true"],
+/* Active row: tinted pill, gradient rail, cyan icon. */
 .app-sidebar-dock [data-slot="sidebar-menu-button"].bg-cta\/15 {
-  background-color: color-mix(in oklab, var(--cta) 14%, transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--al-cyan) 16%, transparent),
+    color-mix(in oklab, var(--al-violet) 6%, transparent)
+  );
+  color: var(--al-text);
+  font-weight: 600;
+}
+
+.app-sidebar-dock [data-slot="sidebar-menu-button"].bg-cta\/15 svg {
+  color: var(--al-accent);
+  opacity: 1;
+}
+
+.app-sidebar-dock [data-slot="sidebar-menu-button"].bg-cta\/15 span.bg-cta {
+  background: var(--al-grad-line);
+  width: 3px;
+  box-shadow: 0 0 10px color-mix(in oklab, var(--al-cyan) 70%, transparent);
+}
+
+/* --- 6. Top bar ---------------------------------------------------------- */
+
+.al-topbar {
+  position: sticky;
+  top: var(--event-banner-h, 0px);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4rem;
+  padding: 0.65rem clamp(1rem, 3vw, 2rem);
+  background: var(--al-topbar);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border-bottom: 1px solid var(--al-border);
+}
+
+/* Square/pill glass buttons used across the top bar. */
+/* No `display` here on purpose: un-layered CSS would beat Tailwind's
+   responsive `hidden` / `md:hidden` on the same element. Callers add
+   `inline-flex` (plus any breakpoint visibility) in className. */
+.al-chip-btn {
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  padding: 0 0.7rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--al-border);
+  background: var(--al-surface);
+  color: var(--al-text);
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.3s,
+    background-color 0.2s;
+}
+
+.al-chip-square {
+  padding: 0;
+  width: 2.5rem;
+}
+
+.al-chip-btn:hover {
+  border-color: color-mix(in oklab, var(--al-cyan) 42%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--al-cyan) 10%, transparent);
+}
+
+/* The ⌘K field. */
+.al-search {
+  width: 100%;
+  max-width: 26rem;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+  height: 2.5rem;
+  padding: 0 0.55rem 0 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--al-border);
+  background: var(--al-surface);
+  color: var(--al-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.3s;
+}
+
+.al-search:hover {
+  border-color: color-mix(in oklab, var(--al-cyan) 45%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--al-cyan) 10%, transparent);
+}
+
+.al-kbd {
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.375rem;
+  font-family: var(--al-font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border: 1px solid var(--al-border);
+  background: var(--al-surface-2);
+  color: var(--al-muted);
+}
+
+/* The template's gradient CTA. */
+.al-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  padding: 0 0.9rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #05131a;
+  background: var(--al-grad);
+  box-shadow: 0 0 22px -4px color-mix(in oklab, var(--al-cyan) 55%, transparent);
+  transition:
+    box-shadow 0.3s,
+    transform 0.15s,
+    filter 0.2s;
+}
+
+.al-cta:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 0 34px -2px color-mix(in oklab, var(--al-cyan) 70%, transparent);
+}
+
+.al-cta:active {
+  transform: scale(0.97);
+}
+
+/* --- 7. Overlays: menus, popovers, selects, dialogs, tooltips ----------- */
+
+[data-slot="dropdown-menu-content"],
+[data-slot="dropdown-menu-sub-content"],
+[data-slot="popover-content"],
+[data-slot="select-content"] {
+  border-radius: 0.95rem;
+  border-color: var(--al-border-strong);
+  background-color: var(--al-pop);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: var(--al-shadow-lg);
+  padding: 0.35rem;
+}
+
+[data-slot="dropdown-menu-item"],
+[data-slot="select-item"] {
+  border-radius: 0.6rem;
+}
+
+[data-slot="dialog-content"],
+[data-slot="sheet-content"] {
+  border-color: var(--al-border-strong);
+  background-color: var(--al-pop);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: var(--al-shadow-lg);
+}
+
+[data-slot="dialog-content"] {
+  border-radius: 1.25rem;
+}
+
+[data-slot="dialog-overlay"],
+[data-slot="sheet-overlay"] {
+  background-color: rgba(3, 5, 12, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+[data-slot="tooltip-content"] {
+  border-radius: 0.6rem;
+}
+
+/* Command palette. Its field is the whole header row, so the global focus
+   ring would draw a box inside the dialog. */
+.al-palette input:focus-visible {
+  outline: none;
+}
+
+.al-palette input::placeholder {
+  color: var(--al-muted);
+}
+
+.al-palette-row-active {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--al-cyan) 14%, transparent),
+    color-mix(in oklab, var(--al-violet) 7%, transparent)
+  );
   color: var(--al-text);
 }
 
-/* --- 5. Top bar ---------------------------------------------------------- */
-
-[data-slot="sidebar-inset"] > header {
-  border-color: var(--al-border);
-  background-color: var(--al-topbar);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+.al-icon-tile {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 0.65rem;
+  color: var(--al-accent);
+  border: 1px solid var(--al-border);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--al-cyan) 14%, transparent),
+    color-mix(in oklab, var(--al-violet) 12%, transparent)
+  );
 }
 
-/* --- 6. Tables ----------------------------------------------------------- */
+/* --- 8. Tables, tabs, inputs -------------------------------------------- */
 
-/* Quiet uppercase column heads and hairline rows, matching the template's
-   activity and runs tables. Scoped to tables inside cards so the workflow
-   editor's own grids are left alone. */
 .card-weave table thead th {
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--al-muted);
 }
@@ -348,46 +621,109 @@ h3,
   border-color: var(--al-border);
 }
 
-.card-weave table tbody tr:hover {
-  background-color: color-mix(in oklab, var(--cta) 5%, transparent);
+.card-weave table tbody tr {
+  transition: background-color 0.15s;
 }
 
-/* --- 7. Controls --------------------------------------------------------- */
+.card-weave table tbody tr:hover {
+  background-color: color-mix(in oklab, var(--al-cyan) 5%, transparent);
+}
+
+[data-slot="tabs-list"] {
+  border-radius: 0.85rem;
+  background-color: var(--al-surface-2);
+  border: 1px solid var(--al-border);
+}
+
+[data-slot="tabs-trigger"] {
+  border-radius: 0.6rem;
+}
 
 [data-slot="input"],
 textarea,
 [data-slot="select-trigger"] {
-  border-radius: 0.625rem;
-  border-color: var(--al-border);
+  border-radius: 0.7rem;
+  border-color: var(--al-border-strong);
   background-color: var(--al-surface-2);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.25s;
 }
 
 [data-slot="input"]:focus-visible,
 textarea:focus-visible,
 [data-slot="select-trigger"]:focus-visible {
-  border-color: color-mix(in oklab, var(--cta) 60%, transparent);
+  outline: none;
+  border-color: color-mix(in oklab, var(--al-cyan) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--al-cyan) 16%, transparent);
 }
 
-/* Primary buttons glow faintly, as in the template. */
-[data-slot="button"].bg-primary,
-[data-slot="button"]:not([class*="bg-"]):not([class*="hover:bg-"]) {
-  border-radius: 0.625rem;
+/* Thin, quiet scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--al-border-strong) transparent;
 }
 
-.dark [data-slot="button"].bg-primary {
-  box-shadow: 0 0 18px -4px color-mix(in oklab, var(--cta) 45%, transparent);
+/* --- 9. Auth ------------------------------------------------------------- */
+
+.al-auth-card {
+  border-radius: 1.5rem;
+  border: 1px solid var(--al-border);
+  background: var(--al-surface);
+  backdrop-filter: blur(24px) saturate(1.15);
+  -webkit-backdrop-filter: blur(24px) saturate(1.15);
+  box-shadow: var(--al-shadow-lg);
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+  animation: al-rise 0.7s var(--al-ease) both;
 }
 
-/* --- 8. Brand bits ------------------------------------------------------- */
+.al-auth-card h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+}
 
-/* The wordmark is a violet-to-cyan gradient on transparent, so it sits
-   directly on the dark canvas but needs an ink pill to hold contrast on the
-   light one. Applied by components/BrandLogo.tsx. */
+/* Always-dark brand panel, in both themes. */
+.al-auth-panel {
+  background-color: var(--al-ink);
+  background-image:
+    radial-gradient(40rem 28rem at 110% 30%, rgba(139, 92, 246, 0.28), transparent 65%),
+    radial-gradient(34rem 26rem at -10% 100%, rgba(34, 211, 238, 0.18), transparent 70%),
+    linear-gradient(to right, rgba(140, 160, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(140, 160, 255, 0.05) 1px, transparent 1px);
+  background-size: auto, auto, 32px 32px, 32px 32px;
+  border-left: 1px solid rgba(140, 160, 255, 0.12);
+}
+
+.al-gradient-text {
+  background: linear-gradient(110deg, #f4f7ff 20%, #7de9f7 60%, #a78bfa 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.al-float {
+  animation: al-float 6s ease-in-out infinite;
+}
+
+@keyframes al-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-3deg);
+  }
+}
+
+/* --- 10. Brand bits ------------------------------------------------------ */
+
+/* The wordmark is a gradient on transparency: straight on the dark canvas, on
+   an ink pill in light mode where its cyan end would wash out. */
 .al-logo-pill {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 0.3rem 0.7rem;
+  padding: 0.35rem 0.75rem;
   background: #0b1020;
   box-shadow: 0 0 18px rgba(34, 211, 238, 0.18);
 }
@@ -398,35 +734,33 @@ textarea:focus-visible,
   box-shadow: none;
 }
 
-/* Version chip next to the logo. */
 .al-version-chip {
   font-size: 0.6875rem;
   font-weight: 600;
-  padding: 0.15rem 0.4rem;
-  border-radius: 0.375rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.4rem;
   color: var(--al-accent);
-  border: 1px solid color-mix(in oklab, var(--cta) 30%, transparent);
-  background: color-mix(in oklab, var(--cta) 8%, transparent);
+  border: 1px solid color-mix(in oklab, var(--al-cyan) 30%, transparent);
+  background: color-mix(in oklab, var(--al-cyan) 8%, transparent);
 }
 
-/* Status pill. Colour comes from --al-st-*, set inline per status by
-   components/brand/StatusPill.tsx. */
 .al-status {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.4rem;
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.2rem 0.55rem;
+  padding: 0.3rem 0.7rem;
   border-radius: 999px;
   color: var(--al-st-fg, var(--al-muted));
   background: var(--al-st-bg, var(--al-surface-2));
+  border: 1px solid color-mix(in oklab, var(--al-st-fg, var(--al-muted)) 22%, transparent);
 }
 
 .al-status::before {
   content: "";
-  width: 0.375rem;
-  height: 0.375rem;
+  width: 0.4rem;
+  height: 0.4rem;
   border-radius: 999px;
   background: currentColor;
 }
@@ -438,25 +772,15 @@ textarea:focus-visible,
 @keyframes al-pulse {
   0% {
     box-shadow: 0 0 0 0 currentColor;
-    opacity: 1;
   }
   70% {
-    box-shadow: 0 0 0 5px transparent;
-    opacity: 0.6;
+    box-shadow: 0 0 0 6px transparent;
   }
   100% {
     box-shadow: 0 0 0 0 transparent;
-    opacity: 1;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .al-status[data-pulse="true"]::before {
-    animation: none;
-  }
-}
-
-/* Thin progress rail — usage bars, campaign progress, quota meters. */
 .al-rail {
   height: 0.375rem;
   border-radius: 999px;
@@ -468,5 +792,77 @@ textarea:focus-visible,
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--al-violet), var(--al-cyan));
+  background: var(--al-grad-line);
+  box-shadow: 0 0 10px color-mix(in oklab, var(--al-cyan) 55%, transparent);
+  transform-origin: left;
+  animation: al-grow 1.1s var(--al-ease) 0.3s backwards;
+}
+
+@keyframes al-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* KPI tiles. */
+.al-kpi {
+  position: relative;
+  overflow: hidden;
+}
+
+.al-kpi::after {
+  content: "";
+  position: absolute;
+  inset: auto -30% -60% auto;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in oklab, var(--al-cyan) 14%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+.al-kpi-value {
+  font-family: var(--al-font-display);
+  font-size: clamp(1.6rem, 1.2rem + 1vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Activity bars. */
+.al-bar {
+  background: linear-gradient(180deg, var(--al-cyan), var(--al-violet));
+  border-radius: 0.5rem 0.5rem 0.2rem 0.2rem;
+  box-shadow: 0 0 16px -4px color-mix(in oklab, var(--al-cyan) 60%, transparent);
+  transform-origin: bottom;
+  animation: al-bar-up 0.9s var(--al-ease) backwards;
+  transition: filter 0.2s;
+}
+
+.al-bar:hover {
+  filter: brightness(1.15);
+}
+
+@keyframes al-bar-up {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+/* --- 11. Motion safety --------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  main.app-surface > div,
+  .al-auth-card,
+  .al-float,
+  .al-rail > span,
+  .al-bar,
+  .al-status[data-pulse="true"]::before {
+    animation: none;
+  }
+
+  .card-weave,
+  a.card-weave:hover {
+    transform: none;
+  }
 }

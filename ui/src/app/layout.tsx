@@ -23,6 +23,9 @@ import { AppConfigProvider } from "@/context/AppConfigContext";
 import { OnboardingProvider } from "@/context/OnboardingContext";
 import { OrgConfigProvider } from "@/context/OrgConfigContext";
 import { TelephonyConfigWarningsProvider } from "@/context/TelephonyConfigWarningsContext";
+import { I18nProvider } from "@/i18n";
+import { dictionaryFor } from "@/i18n/dictionaries";
+import { getServerLocale } from "@/i18n/server";
 import { AuthProvider } from "@/lib/auth";
 
 
@@ -50,16 +53,23 @@ const sora = Sora({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Voice AiLunaPro",
-  description: "Agents vocaux IA — création, campagnes et téléphonie",
-};
+// BRAND: title and description follow the visitor's language (English default).
+export async function generateMetadata(): Promise<Metadata> {
+  const t = dictionaryFor(await getServerLocale());
+  return {
+    title: "Voice AiLunaPro",
+    description: t.meta.description,
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: {
   children: React.ReactNode
 }) {
+  // BRAND: language chosen from the menu, read server-side so the first paint
+  // is already translated. English when none was ever picked. See BRAND.md.
+  const locale = await getServerLocale();
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim();
   const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim();
   const reoClientId = process.env.NEXT_PUBLIC_REO_CLIENT_ID?.trim();
@@ -68,7 +78,7 @@ export default function RootLayout({
   const showEventBanner = process.env.NEXT_PUBLIC_EVENT_BANNER?.trim() === "1";
 
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang={locale} className="dark" suppressHydrationWarning>
       <head>
         {/* Inline script to prevent flash of light theme - runs before React hydrates.
             Dark is the locked default: only an explicit stored 'light' opts out. */}
@@ -101,6 +111,7 @@ export default function RootLayout({
                 is sticky at top-0 and publishes --event-banner-h, which the
                 header/sidebar offsets in AppLayout + globals.css consume. */}
             {showEventBanner ? <EventBanner /> : null}
+            <I18nProvider initialLocale={locale}>
             <AuthProvider>
               <AppConfigProvider>
                 <Suspense fallback={<SpinLoader />}>
@@ -120,6 +131,7 @@ export default function RootLayout({
                 </Suspense>
               </AppConfigProvider>
             </AuthProvider>
+            </I18nProvider>
           </SentryErrorBoundary>
         </ThemeProvider>
       </body>

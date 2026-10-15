@@ -446,7 +446,7 @@ export default function APIKeysPage() {
                             </Button>
                         ) : (
                             <span className="text">
-                                To generate additional service keys, <a href="https://app.dograh.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Sign up on app.dograh.com</a>
+                                {/* BRAND: upstream links to app.dograh.com here. See BRAND.md. */}To generate additional service keys, <a href="mailto:service@ailunapro.com" className="text-primary hover:underline">contact support</a>
                             </span>
                         )}</>}>
                     {isServiceKeysLoading ? (

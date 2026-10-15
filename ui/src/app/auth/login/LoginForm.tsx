@@ -10,11 +10,13 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useI18n } from "@/i18n";
 
 export function LoginForm({ signupEnabled }: { signupEnabled: boolean }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const a = useI18n().t.auth;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +29,7 @@ export function LoginForm({ signupEnabled }: { signupEnabled: boolean }) {
 
       if (res.error || !res.data) {
         const detail = (res.error as { detail?: string })?.detail;
-        toast.error(detail || "Connexion impossible");
+        toast.error(detail || a.loginFailed);
         return;
       }
 
@@ -40,7 +42,7 @@ export function LoginForm({ signupEnabled }: { signupEnabled: boolean }) {
 
       window.location.href = "/after-sign-in";
     } catch {
-      toast.error("Une erreur est survenue. Réessayez.");
+      toast.error(a.genericError);
     } finally {
       setLoading(false);
     }
@@ -49,15 +51,15 @@ export function LoginForm({ signupEnabled }: { signupEnabled: boolean }) {
   return (
     <AuthShell enterpriseSlot={<AuthEnterpriseCTA />}>
       <div className="space-y-1.5 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Connexion</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{a.signInTitle}</h1>
         <p className="text-sm text-muted-foreground">
-          Saisissez votre e-mail et votre mot de passe pour continuer
+          {a.signInSub}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">E-mail</Label>
+          <Label htmlFor="email">{a.email}</Label>
           <Input
             id="email"
             type="email"
@@ -68,26 +70,26 @@ export function LoginForm({ signupEnabled }: { signupEnabled: boolean }) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Mot de passe</Label>
+          <Label htmlFor="password">{a.password}</Label>
           <Input
             id="password"
             type="password"
-            placeholder="Votre mot de passe"
+            placeholder={a.passwordPlaceholder}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Connexion…" : "Se connecter"}
+          {loading ? a.signingIn : a.signIn}
         </Button>
       </form>
 
       {signupEnabled && (
         <p className="text-center text-sm text-muted-foreground">
-          Pas encore de compte ?{" "}
+          {a.noAccount}{" "}
           <Link href="/auth/signup" className="text-primary underline-offset-4 hover:underline">
-            Créer un compte
+            {a.createAccountLink}
           </Link>
         </p>
       )}

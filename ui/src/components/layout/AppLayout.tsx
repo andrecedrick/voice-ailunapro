@@ -1,43 +1,23 @@
 "use client";
 
-import { AlertTriangle, LifeBuoy, Menu, RefreshCw } from "lucide-react";
-import Link from "next/link";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import { usePathname } from "next/navigation";
 import React, { ReactNode } from "react";
 
-import { BrandLogo } from "@/components/BrandLogo";
+import { AppTopbar } from "@/components/brand/AppTopbar";
 import { Button } from "@/components/ui/button";
-import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useAppConfig } from "@/context/AppConfigContext";
 import { LeadFormsProvider } from "@/context/LeadFormsContext";
 
 import { AppSidebar } from "./AppSidebar";
 
+// BRAND: upstream's header (Join Slack + GitHub star) is replaced by the
+// template's top bar — breadcrumb, ⌘K palette, language, theme, "New agent".
+// It lives in components/brand/AppTopbar.tsx, which upstream does not have.
+// See BRAND.md.
 function AppHeader() {
-  const { toggleSidebar } = useSidebar();
-
-  return (
-    <header className="sticky top-[var(--event-banner-h,0px)] z-50 flex items-center justify-between border-b border-border/60 bg-background/70 px-4 py-2 backdrop-blur-md supports-[backdrop-filter]:bg-background/55">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Ouvrir le menu" className="md:hidden">
-          <Menu className="h-5 w-5" />
-        </Button>
-        <Link href="/" className="md:hidden" aria-label="Voice AiLunaPro">
-          <BrandLogo pill className="h-5" />
-        </Link>
-      </div>
-      {/* BRAND: upstream puts a "Join Slack" link to the Dograh community and a
-          GitHub star badge here. Replaced with our own support route. See BRAND.md. */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <a href="mailto:service@ailunapro.com" className="flex items-center gap-2">
-            <LifeBuoy className="h-4 w-4" />
-            <span className="hidden sm:inline">Support</span>
-          </a>
-        </Button>
-      </div>
-    </header>
-  );
+  return <AppTopbar />;
 }
 
 function BackendStatusBanner() {

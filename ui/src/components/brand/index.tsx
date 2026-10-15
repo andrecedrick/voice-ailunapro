@@ -109,14 +109,14 @@ export function KpiTile({
     : "text-[color:var(--al-ok)]";
 
   return (
-    <div className="card-weave flex flex-col gap-3 border p-4">
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Icon className="h-4 w-4 shrink-0" />
-        <span className="truncate text-xs font-medium uppercase tracking-wider">
-          {label}
+    <div className="card-weave al-kpi flex flex-col gap-4 border p-5">
+      <div className="flex items-center gap-3">
+        <span className="al-icon-tile">
+          <Icon className="h-4 w-4" />
         </span>
+        <span className="truncate text-[13px] font-medium text-muted-foreground">{label}</span>
       </div>
-      <div className="al-display text-2xl font-semibold leading-none">{value}</div>
+      <div className="al-kpi-value leading-none">{value}</div>
       {(trend || hint) && (
         <div className="flex items-baseline gap-2 text-xs">
           {trend && <span className={cn("font-semibold", trendTone)}>{trend}</span>}

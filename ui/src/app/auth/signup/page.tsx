@@ -10,23 +10,25 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useI18n } from "@/i18n";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const a = useI18n().t.auth;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (password.length < 8) {
-      toast.error("Le mot de passe doit faire au moins 8 caractères");
+      toast.error(a.tooShort);
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Les mots de passe ne correspondent pas");
+      toast.error(a.mismatch);
       return;
     }
 
@@ -39,7 +41,7 @@ export default function SignupPage() {
 
       if (res.error || !res.data) {
         const detail = (res.error as { detail?: string })?.detail;
-        toast.error(detail || "Création du compte impossible");
+        toast.error(detail || a.signupFailed);
         return;
       }
 
@@ -52,7 +54,7 @@ export default function SignupPage() {
 
       window.location.href = "/after-sign-in";
     } catch {
-      toast.error("Une erreur est survenue. Réessayez.");
+      toast.error(a.genericError);
     } finally {
       setLoading(false);
     }
@@ -61,13 +63,13 @@ export default function SignupPage() {
   return (
     <AuthShell enterpriseSlot={<AuthEnterpriseCTA />}>
       <div className="space-y-1.5 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Créer un compte</h1>
-        <p className="text-sm text-muted-foreground">Quelques informations et vous démarrez</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{a.signUpTitle}</h1>
+        <p className="text-sm text-muted-foreground">{a.signUpSub}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">E-mail</Label>
+          <Label htmlFor="email">{a.email}</Label>
           <Input
             id="email"
             type="email"
@@ -78,11 +80,11 @@ export default function SignupPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Mot de passe</Label>
+          <Label htmlFor="password">{a.password}</Label>
           <Input
             id="password"
             type="password"
-            placeholder="8 caractères minimum"
+            placeholder={a.passwordMin}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -90,11 +92,11 @@ export default function SignupPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+          <Label htmlFor="confirmPassword">{a.confirmPassword}</Label>
           <Input
             id="confirmPassword"
             type="password"
-            placeholder="Confirmez votre mot de passe"
+            placeholder={a.confirmPlaceholder}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
@@ -102,14 +104,14 @@ export default function SignupPage() {
           />
         </div>
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "Création…" : "Créer mon compte"}
+          {loading ? a.creating : a.createAccount}
         </Button>
       </form>
 
       <p className="text-center text-sm text-muted-foreground">
-        Vous avez déjà un compte ?{" "}
+        {a.haveAccount}{" "}
         <Link href="/auth/login" className="text-primary underline-offset-4 hover:underline">
-          Se connecter
+          {a.signInLink}
         </Link>
       </p>
     </AuthShell>

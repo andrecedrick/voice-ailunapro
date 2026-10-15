@@ -2,32 +2,17 @@
 
 import {
   AlertTriangle,
-  ArrowUpCircle,
-  AudioLines,
-  Brain,
   ChevronLeft,
   ChevronRight,
-  CircleDollarSign,
-  Database,
-  FileText,
-  Home,
-  Key,
   LifeBuoy,
   LogOut,
-  type LucideIcon,
-  Megaphone,
-  Phone,
-  Plug,
   Settings,
-  ShieldCheck,
-  TrendingUp,
-  Workflow,
-  Wrench,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React from "react";
 
+import { NAV_SECTIONS, type NavItem } from "@/components/brand/nav";
 import { BrandLogo } from "@/components/BrandLogo";
 import { SidebarTeamSwitcher } from "@/components/layout/SidebarTeamSwitcher";
 import ThemeToggle from "@/components/ThemeSwitcher";
@@ -57,115 +42,15 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppConfig } from "@/context/AppConfigContext";
 import { useTelephonyConfigWarnings } from "@/context/TelephonyConfigWarningsContext";
-import { useLatestReleaseVersion } from "@/hooks/useLatestReleaseVersion";
+import { useI18n } from "@/i18n";
 import type { LocalUser } from "@/lib/auth";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-type SidebarNavItem = {
-  title: string;
-  url: string;
-  icon: LucideIcon;
-  showsTelephonyWarning?: boolean;
-};
-
-type SidebarNavSection = {
-  label?: string;
-  items: SidebarNavItem[];
-};
-
-const TELEPHONY_WARNING_COPY = "Action requise";
-
-// BRAND: labels and section headings follow the AiLunaPro_Voice_Dashboard
-// template (French, "Build" / "Gérer"). The urls are upstream's and must stay
-// in step with Dograh's routes — only the copy is ours. See BRAND.md.
-const NAV_SECTIONS: SidebarNavSection[] = [
-  {
-    items: [
-      {
-        title: "Overview",
-        url: "/overview",
-        icon: Home,
-      },
-    ],
-  },
-  {
-    label: "BUILD",
-    items: [
-      {
-        title: "Agents vocaux",
-        url: "/workflow",
-        icon: Workflow,
-      },
-      {
-        title: "Fournisseurs",
-        url: "/provider-connections",
-        icon: Plug,
-      },
-      {
-        title: "Modèles",
-        url: "/model-configurations",
-        icon: Brain,
-      },
-      {
-        title: "Téléphonie",
-        url: "/telephony-configurations",
-        icon: Phone,
-        showsTelephonyWarning: true,
-      },
-      {
-        title: "Outils",
-        url: "/tools",
-        icon: Wrench,
-      },
-      {
-        title: "Identifiants",
-        url: "/credentials",
-        icon: ShieldCheck,
-      },
-      {
-        title: "Fichiers",
-        url: "/files",
-        icon: Database,
-      },
-      {
-        title: "Campagnes",
-        url: "/campaigns",
-        icon: Megaphone,
-      },
-      {
-        title: "Enregistrements",
-        url: "/recordings",
-        icon: AudioLines,
-      },
-      {
-        title: "Développeurs",
-        url: "/api-keys",
-        icon: Key,
-      },
-    ],
-  },
-  {
-    label: "GÉRER",
-    items: [
-      {
-        title: "Exécutions d'agents",
-        url: "/usage",
-        icon: TrendingUp,
-      },
-      {
-        title: "Facturation",
-        url: "/billing",
-        icon: CircleDollarSign,
-      },
-      {
-        title: "Rapports",
-        url: "/reports",
-        icon: FileText,
-      }
-    ],
-  },
-];
+// BRAND: the nav map lives in components/brand/nav.ts (ours) and its labels in
+// the i18n dictionaries, so the sidebar, top-bar breadcrumb and command palette
+// stay in step in every language. See BRAND.md.
+type SidebarNavItem = NavItem;
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -181,20 +66,14 @@ export function AppSidebar() {
     telnyxMissingWebhookPublicKeyCount > 0 ||
     vonageMissingSignatureSecretCount > 0;
   const isCollapsed = !isMobile && state === "collapsed";
+  const { t } = useI18n();
+  const TELEPHONY_WARNING_COPY = t.common.actionRequired;
 
   // Version info from app config context
   const versionInfo = config
     ? { ui: config.uiVersion, upstream: config.upstreamVersion, api: config.apiVersion }
     : null;
 
-  // Check for updates only on self-hosted (OSS) deployments — cloud is managed for the user.
-  // Compare the Dograh release this build sits on, not the Voice AiLunaPro
-  // version shown in the badge: our own numbering never matches upstream's, so
-  // comparing it would flag the app as out of date forever.
-  const { latest: latestRelease, isBehind, isLatest } = useLatestReleaseVersion(
-    versionInfo?.upstream,
-    { enabled: config?.deploymentMode === "oss" },
-  );
 
   const isActive = (path: string) => pathname.startsWith(path);
 
@@ -211,7 +90,7 @@ export function AppSidebar() {
     const tooltip = {
       children: (
         <div className="notranslate" translate="no">
-          <p>{item.title}</p>
+          <p>{t.nav[item.key]}</p>
           {showWarningDot && (
             <p className="text-amber-600 dark:text-amber-400">{TELEPHONY_WARNING_COPY}</p>
           )}
@@ -260,7 +139,7 @@ export function AppSidebar() {
             className={cn("notranslate min-w-0 flex-1 truncate", isCollapsed && "sr-only")}
             translate="no"
           >
-            {item.title}
+            {t.nav[item.key]}
           </span>
           {showWarningDot && (
             isCollapsed ? (
@@ -358,42 +237,16 @@ export function AppSidebar() {
                 <span
                   className="al-version-chip notranslate"
                   translate="no"
-                  title={`Voice AiLunaPro ${versionInfo.ui} · construit sur Dograh ${versionInfo.upstream}`}
+                  title={`Voice AiLunaPro v${versionInfo.ui}`}
                 >
                   v{versionInfo.ui}
                 </span>
               )}
             </Link>
-            {isBehind && latestRelease && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <a
-                    href="https://github.com/andrecedrick/voice-ailunapro/releases"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded-md border bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium leading-none text-amber-900 transition-opacity hover:opacity-80 dark:bg-amber-950 dark:text-amber-200"
-                  >
-                    <ArrowUpCircle className="h-3 w-3" />
-                    Update
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>Dograh {latestRelease} est disponible (cette version : {versionInfo?.upstream}) — voir les notes de version</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-            {isLatest && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex items-center rounded-md border bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium leading-none text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
-                    Latest
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <p>Vous êtes à jour avec la dernière version Dograh</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
+            {/* BRAND: upstream shows an "Update — Dograh x.y is out" / "Latest"
+                badge here. That tells CUSTOMERS what we are built on and that
+                their app is behind. Release watching is André's job and runs
+                as a daily scheduled task instead. See BRAND.md. */}
           </div>
 
           <SidebarTrigger className={cn("hover:bg-accent", isCollapsed && "mx-auto")}>
@@ -415,7 +268,7 @@ export function AppSidebar() {
       <SidebarContent className={cn("notranslate", isCollapsed && "px-0")} translate="no">
         {NAV_SECTIONS.map((section, index) => (
           <SidebarGroup
-            key={section.label ?? "overview"}
+            key={section.label ?? "root"}
             className={index === 0 ? "mt-2" : "mt-6"}
           >
             {section.label && (
@@ -426,12 +279,12 @@ export function AppSidebar() {
                 )}
                 translate="no"
               >
-                {section.label}
+                {t.nav[section.label]}
               </SidebarGroupLabel>
             )}
             <SidebarMenu>
               {section.items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={t.nav[item.key]}>
                   <SidebarLink item={item} />
                 </SidebarMenuItem>
               ))}
@@ -467,11 +320,11 @@ export function AppSidebar() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => router.push("/settings")} className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
-                    Paramètres
+                    {t.common.settings}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
-                    Se déconnecter
+                    {t.common.signOut}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -504,15 +357,15 @@ export function AppSidebar() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => router.push("/handler/account-settings")} className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
-                    Paramètres du compte
+                    {t.common.accountSettings}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push("/settings")} className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
-                    Paramètres
+                    {t.common.settings}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
-                    Se déconnecter
+                    {t.common.signOut}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -531,7 +384,7 @@ export function AppSidebar() {
                 </div>
               </TooltipTrigger>
               <TooltipContent side={isCollapsed ? "right" : "top"}>
-                <p>Basculer le thème</p>
+                <p>{t.common.theme}</p>
               </TooltipContent>
             </Tooltip>
           </div>

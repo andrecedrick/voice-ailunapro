@@ -14,9 +14,11 @@ import { useState } from "react";
 import { EnterpriseModal } from "@/components/lead-forms/EnterpriseModal";
 import { Button } from "@/components/ui/button";
 import { PostHogEvent } from "@/constants/posthog-events";
+import { useI18n } from "@/i18n";
 
 export function AuthEnterpriseCTA() {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
 
   const openModal = () => {
     setOpen(true);
@@ -30,7 +32,7 @@ export function AuthEnterpriseCTA() {
         onClick={openModal}
         className="w-full border-white/20 bg-white/5 text-zinc-100 hover:bg-white/10 hover:text-white"
       >
-        Demande entreprise
+        {t.auth.enterpriseCta}
       </Button>
       <EnterpriseModal open={open} onOpenChange={setOpen} source="auth_page" />
     </>

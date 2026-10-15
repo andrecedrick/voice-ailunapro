@@ -86,6 +86,12 @@ exists "$(ui public/ailunapro-logo.png)"       "Wordmark."
 exists "$(ui public/ailunapro-mark.png)"       "Square icon."
 exists "$(ui src/lib/productVersion.ts)"       "Our version numbering, separate from Dograh's."
 exists "$(ui src/app/pricing/page.tsx)"        "Public pricing page."
+exists "$(ui src/i18n/config.ts)"            "Language list and English default."
+exists "$(ui src/i18n/dictionaries/en.ts)"   "Reference dictionary; every language is typed against it."
+exists "$(ui src/components/brand/AppTopbar.tsx)" "Template top bar: breadcrumb, ⌘K, language, theme, New agent."
+exists "$(ui src/components/brand/LanguageMenu.tsx)" "Language picker."
+exists "$(ui src/app/icon.png)"              "Favicon (PNG)."
+exists "$(ui src/app/apple-icon.png)"        "Home-screen icon."
 exists BRAND.md                           "The manifest this script checks."
 
 echo
@@ -96,24 +102,28 @@ contains "$(ui src/app/layout.tsx)" '--font-sora' \
   "Display face. The headings fall back to the body font without it."
 contains "$(ui src/components/BrandLogo.tsx)" '/ailunapro-logo.png' \
   "Logo source. Reverting points it at a dograh-*.png that no longer exists."
-contains "$(ui src/components/layout/AppSidebar.tsx)" 'Agents vocaux' \
-  "French nav labels from the template."
+contains "$(ui src/components/layout/AppSidebar.tsx)" 'components/brand/nav' \
+  "Sidebar reads the shared nav map and translated labels."
 contains "$(ui src/components/layout/AppSidebar.tsx)" 'al-version-chip' \
   "Version chip beside the logo."
-contains "$(ui src/components/layout/AppLayout.tsx)" 'BrandLogo' \
-  "Mobile wordmark in the header."
 contains "$(ui src/components/Footer.tsx)" 'ailunapro.com' \
   "Legal links. Pointing these at dograh.com is a legal problem, not a cosmetic one."
 contains "$(ui src/middleware.ts)" "'/pricing'" \
   "Keeps the pricing page public; without it, visitors get the login form."
 contains "$(ui src/app/overview/page.tsx)" 'KpiTile' \
   "The dashboard rebuilt from the template."
-contains "$(ui src/app/auth/login/LoginForm.tsx)" 'Se connecter' \
-  "French sign-in form — the first screen a customer sees."
-contains "$(ui src/app/auth/signup/page.tsx)" 'Créer mon compte' \
-  "French sign-up form."
-contains "$(ui src/components/auth/AuthShell.tsx)" 'agents vocaux IA' \
-  "French value proposition on the auth brand panel."
+contains "$(ui src/app/layout.tsx)" 'I18nProvider' \
+  "Language provider. Without it every screen falls back to English and the menu does nothing."
+contains "$(ui src/components/layout/AppLayout.tsx)" 'AppTopbar' \
+  "Template top bar in place of upstream's Slack/GitHub header."
+contains "$(ui src/app/billing/page.tsx)" 'PlanNotice' \
+  "Our plans on the billing page instead of 'buy credits at app.dograh.com'."
+contains "$(ui src/app/auth/login/LoginForm.tsx)" 'useI18n' \
+  "Translated sign-in form — the first screen a customer sees."
+contains "$(ui src/app/auth/signup/page.tsx)" 'useI18n' \
+  "Translated sign-up form."
+contains "$(ui src/components/auth/AuthShell.tsx)" 'LanguageMenu' \
+  "Translated auth panel with its language picker."
 
 echo
 echo "3. Dograh chrome that must stay gone"
@@ -126,7 +136,13 @@ absent "$(ui src/components/layout/AppSidebar.tsx)" 'Hire an Expert' \
 absent "$(ui src/components/Footer.tsx)" 'dograh.com' \
   "Legal links point at dograh.com."
 absent "$(ui src/components/auth/AuthEnterpriseCTA.tsx)" 'Enterprise Enquiry' \
-  "English CTA is back on the auth panel."
+  "Hard-coded CTA is back on the auth panel."
+absent "$(ui src/app/billing/page.tsx)" 'app.dograh.com' \
+  "Billing page sends OUR customers to buy credits from Dograh."
+absent "$(ui src/app/api-keys/page.tsx)" 'app.dograh.com' \
+  "Developers page sends customers to sign up at Dograh."
+absent "$(ui src/components/layout/AppSidebar.tsx)" 'useLatestReleaseVersion' \
+  "The 'Dograh x.y is out' badge is back in front of customers."
 
 echo
 if [ "$failures" -eq 0 ]; then
