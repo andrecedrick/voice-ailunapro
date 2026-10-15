@@ -182,11 +182,16 @@ export function AppSidebar() {
   const isCollapsed = !isMobile && state === "collapsed";
 
   // Version info from app config context
-  const versionInfo = config ? { ui: config.uiVersion, api: config.apiVersion } : null;
+  const versionInfo = config
+    ? { ui: config.uiVersion, upstream: config.upstreamVersion, api: config.apiVersion }
+    : null;
 
   // Check for updates only on self-hosted (OSS) deployments — cloud is managed for the user.
+  // Compare the Dograh release this build sits on, not the Voice AiLunaPro
+  // version shown in the badge: our own numbering never matches upstream's, so
+  // comparing it would flag the app as out of date forever.
   const { latest: latestRelease, isBehind, isLatest } = useLatestReleaseVersion(
-    versionInfo?.ui,
+    versionInfo?.upstream,
     { enabled: config?.deploymentMode === "oss" },
   );
 
@@ -344,6 +349,7 @@ export function AppSidebar() {
                 <span
                   className="notranslate text-xs font-normal text-muted-foreground"
                   translate="no"
+                  title={`Voice AiLunaPro ${versionInfo.ui} · built on Dograh ${versionInfo.upstream}`}
                 >
                   v{versionInfo.ui}
                 </span>
@@ -363,7 +369,7 @@ export function AppSidebar() {
                   </a>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                  <p>Latest: {latestRelease} - click to see the update guide</p>
+                  <p>Dograh {latestRelease} is out (this build: {versionInfo?.upstream}) - click to see the update guide</p>
                 </TooltipContent>
               </Tooltip>
             )}

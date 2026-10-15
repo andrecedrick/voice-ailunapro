@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 
 import type { HealthResponse } from "@/client/types.gen";
 import { getServerBackendUrl } from "@/lib/apiClient";
-
-// Import version from package.json at build time
-import packageJson from "../../../../../package.json";
+import { UPSTREAM_VERSION, VOICE_VERSION } from "@/lib/productVersion";
 
 const HEALTHCHECK_TIMEOUT_MS = 3000;
 
@@ -26,7 +24,7 @@ function getHealthcheckFailureMessage(error: unknown, backendUrl: string) {
 }
 
 export async function GET() {
-  const uiVersion = packageJson.version || "dev";
+  const uiVersion = VOICE_VERSION;
   const backendUrl = trimTrailingSlash(getServerBackendUrl());
   const healthcheckUrl = `${backendUrl}/api/v1/health`;
 
@@ -71,6 +69,8 @@ export async function GET() {
 
   return NextResponse.json({
     ui: uiVersion,
+    // The Dograh release underneath, so the update check compares like with like.
+    upstream: UPSTREAM_VERSION,
     api: apiVersion,
     deploymentMode,
     authProvider,
