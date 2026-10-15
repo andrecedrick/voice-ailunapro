@@ -1,11 +1,11 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Dograh AI",
+  "name": "Voice AiLunaPro",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#7C3AED",
+    "light": "#22D3EE",
+    "dark": "#6D28D9"
   },
   "favicon": "/favicon.ico",
   "navigation": {
@@ -30,17 +30,17 @@
           {
             "group": "Build your First Agent",
             "pages": [
-                  "getting-started/first-agent",
-                  "getting-started/trigger-calls-from-your-backend",
-                  "getting-started/send-call-data-with-webhooks",
-                  "getting-started/connect-telephony",
-                  "getting-started/add-tools-and-knowledge-base"
+              "getting-started/first-agent",
+              "getting-started/trigger-calls-from-your-backend",
+              "getting-started/send-call-data-with-webhooks",
+              "getting-started/connect-telephony",
+              "getting-started/add-tools-and-knowledge-base"
             ]
           },
           {
             "group": "Core Concepts",
             "pages": [
-              "core-concepts/how-dograh-works",
+              "core-concepts/how-ailunapro-works",
               "core-concepts/workflows-and-agents",
               "core-concepts/calls-and-runs",
               "core-concepts/context-and-variables",
@@ -111,7 +111,7 @@
             "pages": [
               "integrations/telephony/overview",
               "integrations/telephony/inbound",
-              "integrations/telephony/dograh-sip",
+              "integrations/telephony/ailunapro-sip",
               "integrations/telephony/twilio",
               "integrations/telephony/vonage",
               "integrations/telephony/plivo",
@@ -144,40 +144,11 @@
         "icon": "code",
         "groups": [
           {
-            "group": "Contribution",
-            "pages": [
-              "contribution/setup",
-              "contribution/reference"
-            ]
-          },
-          {
             "group": "Guides",
             "pages": [
               "developer/workflow-schema",
               "developer/call-dispositions",
-              "developer/webhooks",
-              "developer/environment-variables"
-            ]
-          },
-          {
-            "group": "SDKs",
-            "tag": "NEW",
-            "pages": [
-              "sdks/introduction",
-              "sdks/build-an-agent",
-              "sdks/outbound-calls"
-            ]
-          },
-          {
-            "group": "Deployment",
-            "pages": [
-              "deployment/introduction",
-              "deployment/docker",
-              "deployment/authentication",
-              "deployment/custom-domain",
-              "deployment/scaling",
-              "deployment/update",
-              "deployment/heroku"
+              "developer/webhooks"
             ]
           }
         ]
@@ -288,29 +259,29 @@
     ]
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg",
-    "href": "https://docs.dograh.com"
+    "light": "/logo/ailunapro-logo.png",
+    "dark": "/logo/ailunapro-logo.png",
+    "href": "https://docs.ailunapro.com"
   },
   "navbar": {
     "links": [
       {
         "label": "Support",
-        "href": "https://github.com/dograh-hq/dograh/issues/new/choose"
+        "href": "mailto:service@ailunapro.com"
+      },
+      {
+        "label": "Pricing",
+        "href": "https://voice.ailunapro.com/pricing"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://app.dograh.com"
+      "href": "https://voice.ailunapro.com"
     }
   },
-  "banner": {
-    "content": "🎉 **New: MCP Server & SDKs Released** — Drive Dograh from Claude, Cursor, or your own Python/TypeScript code. [MCP →](/integrations/mcp) · [SDKs →](/sdks/introduction)",
-    "dismissible": true
-  },
   "search": {
-    "prompt": "Search for Tools, Webhook, Deployment, etc..."
+    "prompt": "Search agents, tools, telephony, webhooks…"
   },
   "customCSS": "/custom.css",
   "contextual": {
@@ -327,8 +298,7 @@
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/dograh-hq",
-      "linkedin": "https://linkedin.com/company/dograh"
+      "website": "https://ailunapro.com"
     }
   },
   "api": {
@@ -336,20 +306,20 @@
   },
   "redirects": [
     {
-      "source": "/contribution/introduction",
-      "destination": "/contribution/setup"
+      "source": "/core-concepts/how-dograh-works",
+      "destination": "/core-concepts/how-ailunapro-works"
     },
     {
-      "source": "/contribution/devcontainer",
-      "destination": "/contribution/reference"
+      "source": "/integrations/telephony/dograh-sip",
+      "destination": "/integrations/telephony/ailunapro-sip"
     },
     {
-      "source": "/contribution/host-managed-setup",
-      "destination": "/contribution/reference"
+      "source": "/voice-agent/tools",
+      "destination": "/voice-agent/tools/introduction"
     },
     {
-      "source": "/contribution/fork-workflow",
-      "destination": "/contribution/reference"
+      "source": "/getting-started",
+      "destination": "/getting-started/index"
     }
   ]
 }

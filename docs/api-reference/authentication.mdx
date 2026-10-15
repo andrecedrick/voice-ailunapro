@@ -1,6 +1,6 @@
 ---
 title: "Authentication"
-description: "How to authenticate requests to the Dograh API"
+description: "How to authenticate requests to the Voice AiLunaPro API"
 ---
 
 ## API key authentication
@@ -8,7 +8,7 @@ description: "How to authenticate requests to the Dograh API"
 API keys are the recommended way to authenticate programmatic requests. Pass your key in the `X-API-Key` request header.
 
 ```bash
-curl https://your-dograh-instance/api/v1/workflow/fetch \
+curl https://voice-api.ailunapro.com/api/v1/workflow/fetch \
   -H "X-API-Key: dg_your_api_key"
 ```
 
@@ -17,10 +17,6 @@ API keys are scoped to an organization. All resources created or accessed using 
 ### Create an API key
 
 Create keys in the dashboard under **Settings → API Keys**. The full key is shown **only once** at creation time — store it immediately in a secrets manager or environment variable.
-
-<Note>
-For self-hosted deployments using local auth, sign up and log in via the dashboard first, then create an API key there before making API calls.
-</Note>
 
 ### Manage API keys
 

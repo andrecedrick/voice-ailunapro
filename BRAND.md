@@ -180,3 +180,16 @@ Other upstream patches made for the same request:
 | `api/routes/workflow_embed.py`, `ui/public/embed/dograh-widget.js`, `ui/next.config.ts`, `EmbedDialog.tsx`, `constants/embedExamples.ts` | Snippet loads `/embed/ailunapro-widget.js`, global `window.AiLunaProWidget`, `data-ailunapro-context`, `ailunapro-inline-container`. The old names keep working for embeds already live. | Customers paste a "Dograh" snippet on their site. |
 | `ui/src/components/Footer.tsx`, `ui/public/licenses.txt` | Footer follows the language; "Open source" link to the BSD notices Dograh and Pipecat require. | Footer in French only; licence notice missing. |
 
+---
+
+## 7. Documentation (docs.ailunapro.com)
+
+`docs/` is the Mintlify site, rebranded: name, colours, logo, URLs (`voice.ailunapro.com`, `voice-api.ailunapro.com`),
+support `service@ailunapro.com`. Self-hosting, contribution, SDK and Docker pages are removed; Dograh's videos and its
+Reo tracker (`custom.js`) are gone. Every app screenshot is retaken on our own app with synthetic data
+(`scripts/docs-screenshots/`, README there); vendor screenshots that showed dograh.com URLs were retouched.
+Old slugs (`how-dograh-works`, `dograh-sip`) redirect to the new ones.
+
+The app's documentation links stay hidden until the site is live; then rebuild the UI with
+`--build-arg NEXT_PUBLIC_DOCS_URL=https://docs.ailunapro.com` (section 6).
+

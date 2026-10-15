@@ -9,15 +9,7 @@ Your agent can hold a conversation. But can it check an order, or answer a polic
 
 There are two ways to connect real information to your agent. A **tool** is for anything live, data that changes, or an action that needs to happen, like checking an order or looking up availability. A **Knowledge Base** is for anything written down, like your return policy or an FAQ, that doesn't change from call to call.
 
-<iframe
-  className="w-full aspect-video rounded-xl"
-  src="https://www.youtube.com/embed/gJCBmsHW8_A"
-  title="How to Add API Tools and a Knowledge Base to Your Voice Agent"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-  allowFullScreen
-></iframe>
-
-Here's the setup used in the video: an order support agent named Maya, for a store called QuickMart. A customer can ask what's in their cart, and Maya calls an API to check it. A customer can also ask a policy question, and Maya answers from a document you uploaded.
+Here's an example setup: an order support agent named Maya, for a store called QuickMart. A customer can ask what's in their cart, and Maya calls an API to check it. A customer can also ask a policy question, and Maya answers from a document you uploaded.
 
 ## Step 1: Create the tool
 
@@ -49,7 +41,7 @@ A tool only becomes available once it's attached to the node that needs it. If y
 
 Click **Upload Document**, or go straight to **Knowledge Base Files**. Pick the document you want the agent to read from, a return policy, a shipping FAQ, whatever your customers actually ask about.
 
-Dograh asks how it should retrieve from this document:
+Voice AiLunaPro asks how it should retrieve from this document:
 
 - **Full Document** works best for small files, where the agent can see the whole thing at once. It does not require an embeddings model.
 - **Chunked Search** is for large documents, where the agent should only pull the relevant section. Configure an embeddings model before selecting this mode; otherwise document processing or retrieval will fail.

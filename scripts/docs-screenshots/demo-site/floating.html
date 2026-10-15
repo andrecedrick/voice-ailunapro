@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Northwind Home</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:InterV,system-ui,sans-serif;background:#f7f5f2;color:#1f2933}
+@font-face{font-family:'InterV';src:url('/__al_fonts/inter') format('woff2');font-weight:100 900}
+header{display:flex;justify-content:space-between;align-items:center;padding:22px 64px;background:#fff;border-bottom:1px solid #eadfd3}
+.logo{font-weight:800;font-size:22px;letter-spacing:-.02em}.logo span{color:#b45309}nav a{margin-left:28px;color:#52606d;text-decoration:none;font-size:15px}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;padding:72px 64px;align-items:center}
+h1{font-size:52px;line-height:1.05;letter-spacing:-.03em;margin:0 0 18px}p.lead{font-size:19px;color:#52606d;max-width:520px;line-height:1.55}
+.btn{display:inline-block;margin-top:22px;padding:14px 22px;border-radius:12px;background:#1f2933;color:#fff;font-weight:600;text-decoration:none}
+.img{height:380px;border-radius:24px;background:linear-gradient(135deg,#d6c7b2,#a3896b);position:relative;overflow:hidden}
+.img:after{content:'';position:absolute;left:12%;right:12%;bottom:14%;height:38%;border-radius:18px;background:#7c5f43;box-shadow:0 30px 0 -10px #5b4532}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding:0 64px 64px}.card{background:#fff;border:1px solid #eadfd3;border-radius:18px;padding:22px}
+.card b{display:block;margin-bottom:6px}.card small{color:#7b8794}
+#ailunapro-inline-container{min-height:420px;border-radius:20px}
+.voice{background:#111827;color:#fff;border-radius:24px;padding:36px}.voice h3{margin:0 0 8px;font-size:26px}.voice p{color:#cbd5e1;margin:0 0 22px}
+.talk{display:flex;align-items:center;gap:12px;border:0;border-radius:999px;padding:16px 26px;font-size:17px;font-weight:700;background:linear-gradient(120deg,#7C3AED,#22D3EE);color:#fff;cursor:pointer}
+.stats{display:flex;gap:26px;margin-top:26px;color:#e2e8f0;font-size:14px}.stats b{display:block;font-size:22px;color:#fff}
+.try{margin-top:26px;font-size:14px;color:#94a3b8}.try span{display:inline-block;margin:6px 8px 0 0;padding:7px 12px;border:1px solid #334155;border-radius:999px;color:#e2e8f0}
+</style></head><body>
+<header><div class="logo">Northwind<span>Home</span></div><nav><a href="#">Sofas</a><a href="#">Tables</a><a href="#">Lighting</a><a href="#">Delivery</a><a href="#">Contact</a></nav></header>
+<section class="hero"><div><h1>Furniture made to last, delivered in 48h.</h1><p class="lead">Questions about an order, a delivery slot or a return? Our voice assistant Emma answers right away, day and night.</p><a class="btn" href="#">Shop the collection</a></div>
+<div><div class="img"></div></div></section>
+<section class="cards"><div class="card"><b>Free delivery</b><small>On every order over 500 €</small></div><div class="card"><b>30-day returns</b><small>Collected from your home</small></div><div class="card"><b>10-year warranty</b><small>On frames and mechanisms</small></div></section>
+<script>(function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(d.getElementById(id))return;js=d.createElement(s);js.id=id;
+js.src='http://localhost:3400/embed/ailunapro-widget.js?token=EMBED_TOKEN&environment=local&apiEndpoint=http://127.0.0.1:8100';js.async=true;fjs.parentNode.insertBefore(js,fjs);}(document,'script','ailunapro-widget'));</script>
+</body></html>

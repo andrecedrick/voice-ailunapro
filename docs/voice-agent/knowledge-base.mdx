@@ -6,7 +6,7 @@ description: "Upload documents that your voice agent can reference during live c
 The Knowledge Base lets you upload documents that your voice agents can reference during conversations. Instead of encoding all information into prompts, you can provide source documents and let the agent retrieve relevant content on the fly.
 
 <Warning>
-An embedding API key (configured in **AI Models Configuration → Embedding**) is required for **Chunked Search** mode. **Full Document** mode does not require embeddings.
+An embedding API key (configured in **Models → your configuration → BYOK → Embedding**) is required for **Chunked Search** mode. **Full Document** mode does not require embeddings.
 </Warning>
 
 ![Embedding Configuration](../images/embedding-configurations.png)
@@ -15,7 +15,7 @@ An embedding API key (configured in **AI Models Configuration → Embedding**) i
 
 1. You **upload** a document (PDF, DOCX, TXT, or JSON) to the Knowledge Base
 2. You **choose a retrieval mode** — Full Document or Chunked Search
-3. Dograh **processes** the document based on the selected mode
+3. Voice AiLunaPro **processes** the document based on the selected mode
 4. You **attach** the document to one or more workflow nodes
 5. During a call, the agent **retrieves** information from the document and uses it to generate accurate responses
 

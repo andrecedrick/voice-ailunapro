@@ -1,56 +1,20 @@
 ---
 title: "Troubleshooting"
-description: "Common issues and solutions for running Dograh AI"
+description: "Common issues and solutions when using Voice AiLunaPro"
 ---
 
-# Troubleshooting
+## API Trigger returns `400: Telephony provider not configured for this organization`
 
-## Freeing Up Ports
+Enable **Set as default for outbound calls** on your telephony configuration. See [Connect with Telephony](/getting-started/connect-telephony).
 
-### When a port is already in use:
-##### Check what's using the port first and then kill the process (may require sudo on Linux)
-<CodeGroup>
-```bash macOS/Linux
-lsof -i :3010
-kill -9 $(lsof -t -i :3010)
-```
-```powershell Windows
-netstat -ano | findstr :3010
-# Find the PID in the last column, then:
-Stop-Process -Id <PID> -Force
-```
-</CodeGroup>
+## A message plays before my agent answers
 
-### When Docker containers are using the ports (with auto-restart enabled):
+On a Twilio trial account, Twilio plays a default message before connecting to your agent. Press any key to skip it.
 
-**Step 1:** Stop all running containers
-```bash
-docker stop $(docker ps -q)
-```
+## The agent never calls my tool or uses my document
 
-**Step 2:** Disable restart policy for all containers
-This prevents containers from automatically restarting:
-```bash
-docker update --restart=no $(docker ps -a -q)
-```
+A tool or Knowledge Base document only becomes available once it's attached to the node that needs it. See [Use External Tools, Knowledge](/getting-started/add-tools-and-knowledge-base).
 
-**Step 3:** Verify
+## Still stuck?
 
-Check that no containers are running:
-```bash
-docker ps
-```
-
-Check restart policies (should show 'no' for each container):
-```bash
-docker inspect -f '{{.Name}} - {{.HostConfig.RestartPolicy.Name}}' $(docker ps -a -q)
-```
-
-
-## Stopping Dograh Services
-##### Stop services or Stop and remove all data (full cleanup)
-```bash
-docker compose down
-
-docker compose down -v
-```
+Email [service@ailunapro.com](mailto:service@ailunapro.com).

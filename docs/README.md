@@ -1,7 +1,14 @@
-# Dograh AI Documentation
+# Voice AiLunaPro documentation
 
-### Local Setup
+Source of https://docs.ailunapro.com (Mintlify).
 
-1. Install mintlify `npm i -g mint`
-1. Clone the repository
-1. `cd dograh/docs` and run `mint dev`
+## Preview locally
+
+1. `npm i -g mint`
+2. `cd docs && mint dev`
+
+## Rules
+
+- Product name: **Voice AiLunaPro** (first mention), **AiLunaPro** afterwards.
+- Screenshots come from the real app (dark theme by default) — never from a third-party brand.
+- App: https://voice.ailunapro.com · API: https://voice-api.ailunapro.com · Support: service@ailunapro.com
