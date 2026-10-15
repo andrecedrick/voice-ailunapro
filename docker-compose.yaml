@@ -143,7 +143,9 @@ services:
       - app-network
 
   api:
-    image: ${REGISTRY:-dograhai}/dograh-api:latest
+    # Point at a locally built image with VOICE_API_IMAGE in .env; the
+    # default keeps pulling the upstream release.
+    image: ${VOICE_API_IMAGE:-dograhai/dograh-api:latest}
     environment:
       # Core application config
       ENVIRONMENT: "${ENVIRONMENT:-local}"
@@ -299,7 +301,7 @@ services:
       - app-network
 
   ui:
-    image: ${REGISTRY:-dograhai}/dograh-ui:latest
+    image: ${VOICE_UI_IMAGE:-dograhai/dograh-ui:latest}
     environment:
       # Bind the Next.js standalone server to all interfaces
       HOSTNAME: "0.0.0.0"
