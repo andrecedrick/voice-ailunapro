@@ -1,10 +1,32 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from loguru import logger
 
-from api.constants import ENABLE_SIGNUP
+from api.constants import ENABLE_SIGNUP, TURNSTILE_SITE_KEY
 from api.db import db_client
 from api.db.models import UserModel
 from api.enums import PostHogEvent
-from api.schemas.auth import AuthResponse, LoginRequest, SignupRequest, UserResponse
+from api.schemas.auth import (
+    AuthResponse,
+    LoginRequest,
+    ResendVerificationRequest,
+    SignupConfigResponse,
+    SignupRequest,
+    SignupResponse,
+    UserResponse,
+    VerifyEmailRequest,
+)
+from api.services.auth.email_verification import (
+    read_verification_token,
+    send_verification_email,
+    verification_required,
+)
+from api.services.auth.signup_guard import (
+    enforce_rate_limit,
+    is_disposable,
+    looks_like_bot,
+    turnstile_enabled,
+    verify_turnstile,
+)
 from api.services.auth.depends import get_user, require_local_auth
 from api.services.organization_bootstrap import ensure_organization_bootstrapped
 from api.services.posthog_client import capture_event
@@ -16,14 +38,41 @@ router = APIRouter(
 )
 
 
-@router.post(
-    "/signup",
-    response_model=AuthResponse,
+@router.get(
+    "/signup-config",
+    response_model=SignupConfigResponse,
     dependencies=[Depends(require_local_auth)],
 )
-async def signup(request: SignupRequest):
+async def signup_config():
+    """Voice AiLunaPro: what the sign-up form needs to know at runtime."""
+    return SignupConfigResponse(
+        signup_enabled=ENABLE_SIGNUP,
+        verification_required=verification_required(),
+        turnstile_site_key=TURNSTILE_SITE_KEY if turnstile_enabled() else None,
+    )
+
+
+@router.post(
+    "/signup",
+    response_model=SignupResponse,
+    dependencies=[Depends(require_local_auth)],
+)
+async def signup(request: SignupRequest, http_request: Request):
     if not ENABLE_SIGNUP:
         raise HTTPException(status_code=403, detail="Signup is disabled")
+
+    # BRAND: Voice AiLunaPro bot protection. See services/auth/signup_guard.py.
+    await enforce_rate_limit(http_request, "signup")
+    if looks_like_bot(honeypot=request.website, started_at_ms=request.started_at):
+        logger.info("Dropped a sign-up that looked automated")
+        # Answer exactly as a real sign-up would, so the bot learns nothing.
+        return SignupResponse(verification_required=True, email=request.email)
+    await verify_turnstile(request.turnstile_token, http_request)
+    if is_disposable(request.email):
+        raise HTTPException(
+            status_code=400,
+            detail="Please sign up with a permanent email address.",
+        )
 
     # Check if email is already taken
     existing_user = await db_client.get_user_by_email(request.email)
@@ -58,9 +107,6 @@ async def signup(request: SignupRequest):
         created_by=user.provider_id,
     )
 
-    # Create JWT token
-    token = create_jwt_token(user.id, request.email)
-
     capture_event(
         distinct_id=str(user.provider_id),
         event=PostHogEvent.SIGNED_UP,
@@ -70,7 +116,19 @@ async def signup(request: SignupRequest):
         },
     )
 
-    return AuthResponse(
+    # BRAND: confirm the address before the first sign-in. Until SMTP is
+    # configured the account is confirmed on the spot, as before.
+    if verification_required():
+        await send_verification_email(
+            user_id=user.id, email=user.email, locale=request.locale
+        )
+        return SignupResponse(verification_required=True, email=user.email)
+
+    await db_client.mark_user_email_verified(user.id)
+    token = create_jwt_token(user.id, request.email)
+    return SignupResponse(
+        verification_required=False,
+        email=user.email,
         token=token,
         user=UserResponse(
             id=user.id,
@@ -87,7 +145,10 @@ async def signup(request: SignupRequest):
     response_model=AuthResponse,
     dependencies=[Depends(require_local_auth)],
 )
-async def login(request: LoginRequest):
+async def login(request: LoginRequest, http_request: Request):
+    # BRAND: brute-force brake. See services/auth/signup_guard.py.
+    await enforce_rate_limit(http_request, "login")
+
     # Look up user by email
     user = await db_client.get_user_by_email(request.email)
     if not user or not user.password_hash:
@@ -96,6 +157,11 @@ async def login(request: LoginRequest):
     # Verify password
     if not verify_password(request.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    # BRAND: an unconfirmed address cannot sign in. Checked only after the
+    # password, so this never reveals which emails have accounts.
+    if verification_required() and user.email_verified_at is None:
+        raise HTTPException(status_code=403, detail="email_not_verified")
 
     # Create JWT token
     token = create_jwt_token(user.id, user.email)
@@ -118,6 +184,57 @@ async def login(request: LoginRequest):
             provider_id=user.provider_id,
         ),
     )
+
+
+@router.post(
+    "/verify-email",
+    response_model=AuthResponse,
+    dependencies=[Depends(require_local_auth)],
+)
+async def verify_email(request: VerifyEmailRequest):
+    """Voice AiLunaPro: confirm the address from the emailed link, then sign in."""
+    claims = read_verification_token(request.token)
+    if claims is None:
+        raise HTTPException(status_code=400, detail="invalid_or_expired_link")
+    user_id, email = claims
+
+    user = await db_client.get_user_by_email(email)
+    # The token names a user id AND an email; both must still match, so a link
+    # sent before an email change cannot confirm the new address.
+    if user is None or user.id != user_id:
+        raise HTTPException(status_code=400, detail="invalid_or_expired_link")
+
+    await db_client.mark_user_email_verified(user.id)
+
+    return AuthResponse(
+        token=create_jwt_token(user.id, user.email),
+        user=UserResponse(
+            id=user.id,
+            email=user.email,
+            organization_id=user.selected_organization_id,
+            provider_id=user.provider_id,
+        ),
+    )
+
+
+@router.post(
+    "/resend-verification",
+    dependencies=[Depends(require_local_auth)],
+)
+async def resend_verification(request: ResendVerificationRequest, http_request: Request):
+    """Voice AiLunaPro: send a fresh confirmation link.
+
+    Always answers the same way, whether or not the address has an account,
+    so it cannot be used to discover who is registered.
+    """
+    await enforce_rate_limit(http_request, "signup")
+    if verification_required():
+        user = await db_client.get_user_by_email(request.email)
+        if user is not None and user.email_verified_at is None:
+            await send_verification_email(
+                user_id=user.id, email=user.email, locale=request.locale
+            )
+    return {"sent": True}
 
 
 @router.get("/me", response_model=UserResponse)

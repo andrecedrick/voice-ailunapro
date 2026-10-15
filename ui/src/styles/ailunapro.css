@@ -607,6 +607,20 @@ button.card-weave:hover {
   );
 }
 
+.al-notice {
+  border-radius: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid color-mix(in oklab, var(--al-warn) 40%, transparent);
+  background: color-mix(in oklab, var(--al-warn) 10%, transparent);
+}
+
+.al-icon-tile-lg {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1.1rem;
+  margin-inline: auto;
+}
+
 /* --- 8. Tables, tabs, inputs -------------------------------------------- */
 
 .card-weave table thead th {
@@ -846,6 +860,45 @@ textarea:focus-visible,
   from {
     transform: scaleY(0);
   }
+}
+
+/* Plan cards on the billing page. */
+.al-plan {
+  overflow: visible;
+}
+
+.al-plan-popular {
+  border-color: color-mix(in oklab, var(--al-cyan) 45%, transparent);
+  box-shadow:
+    var(--al-shadow),
+    0 0 0 1px color-mix(in oklab, var(--al-cyan) 18%, transparent),
+    0 22px 50px -26px color-mix(in oklab, var(--al-cyan) 65%, transparent);
+}
+
+.al-plan-current {
+  border-color: color-mix(in oklab, var(--al-emerald) 50%, transparent);
+}
+
+.al-plan-badge {
+  position: absolute;
+  top: -0.7rem;
+  left: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #05131a;
+  background: var(--al-grad);
+  box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--al-cyan) 70%, transparent);
+}
+
+.al-plan .al-cta,
+.al-plan .al-chip-btn {
+  height: 2.75rem;
+  justify-content: center;
 }
 
 /* --- 11. Motion safety --------------------------------------------------- */

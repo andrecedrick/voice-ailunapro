@@ -92,6 +92,9 @@ exists "$(ui src/components/brand/AppTopbar.tsx)" "Template top bar: breadcrumb,
 exists "$(ui src/components/brand/LanguageMenu.tsx)" "Language picker."
 exists "$(ui src/app/icon.png)"              "Favicon (PNG)."
 exists "$(ui src/app/apple-icon.png)"        "Home-screen icon."
+exists "$(ui src/components/brand/SubscriptionPanel.tsx)" "Plans, trial and Stripe checkout on the billing page."
+exists "$(ui src/app/auth/verify/page.tsx)"   "Email-confirmation landing page."
+exists "$(ui src/lib/ailunapro-api.ts)"        "Typed calls to our auth and billing endpoints."
 exists BRAND.md                           "The manifest this script checks."
 
 echo
@@ -116,7 +119,7 @@ contains "$(ui src/app/layout.tsx)" 'I18nProvider' \
   "Language provider. Without it every screen falls back to English and the menu does nothing."
 contains "$(ui src/components/layout/AppLayout.tsx)" 'AppTopbar' \
   "Template top bar in place of upstream's Slack/GitHub header."
-contains "$(ui src/app/billing/page.tsx)" 'PlanNotice' \
+contains "$(ui src/app/billing/page.tsx)" 'SubscriptionPanel' \
   "Our plans on the billing page instead of 'buy credits at app.dograh.com'."
 contains "$(ui src/app/auth/login/LoginForm.tsx)" 'useI18n' \
   "Translated sign-in form — the first screen a customer sees."
@@ -137,6 +140,12 @@ absent "$(ui src/components/Footer.tsx)" 'dograh.com' \
   "Legal links point at dograh.com."
 absent "$(ui src/components/auth/AuthEnterpriseCTA.tsx)" 'Enterprise Enquiry' \
   "Hard-coded CTA is back on the auth panel."
+contains "$(ui src/middleware.ts)" "'/auth/verify'" \
+  "Email-confirmation links must open without a session."
+contains "$(ui src/app/auth/signup/page.tsx)" 'started_at' \
+  "Bot protection on sign-up (honeypot + fill timer + Turnstile)."
+absent "$(ui src/app/pricing/page.tsx)" 'buy.stripe.com' \
+  "Pricing page links straight to Stripe Payment Links again: those subscriptions bind to no workspace."
 absent "$(ui src/app/billing/page.tsx)" 'app.dograh.com' \
   "Billing page sends OUR customers to buy credits from Dograh."
 absent "$(ui src/app/api-keys/page.tsx)" 'app.dograh.com' \

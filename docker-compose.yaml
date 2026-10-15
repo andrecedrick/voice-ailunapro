@@ -230,6 +230,19 @@ services:
       STRIPE_METER_EVENT_NAME: "${STRIPE_METER_EVENT_NAME:-voice_minutes}"
       STRIPE_TRIAL_MINUTE_CAP: "${STRIPE_TRIAL_MINUTE_CAP:-50}"
       BILLING_EXEMPT_ORG_IDS: "${BILLING_EXEMPT_ORG_IDS:-}"
+      STRIPE_TRIAL_DAYS: "${STRIPE_TRIAL_DAYS:-7}"
+      STRIPE_PLAN_PRODUCT_PREFIX: "${STRIPE_PLAN_PRODUCT_PREFIX:-AiLunaPro Voice}"
+      # Public address of the UI: confirmation links and Stripe return URLs.
+      UI_APP_URL: "${UI_APP_URL:-http://localhost:3010}"
+      # Sign-up email confirmation. Leave SMTP_HOST empty to skip it.
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_USERNAME: "${SMTP_USERNAME:-}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
+      SMTP_FROM: "${SMTP_FROM:-Voice AiLunaPro <service@ailunapro.com>}"
+      # Cloudflare Turnstile on sign-up. Both empty = no challenge.
+      TURNSTILE_SITE_KEY: "${TURNSTILE_SITE_KEY:-}"
+      TURNSTILE_SECRET_KEY: "${TURNSTILE_SECRET_KEY:-}"
 
       # Trust X-Forwarded-* headers from any peer so uvicorn honors nginx's
       # `X-Forwarded-Proto: https`. nginx runs as its own container and reaches

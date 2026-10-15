@@ -95,6 +95,29 @@ BILLING_EXEMPT_ORG_IDS = frozenset(
     for o in os.getenv("BILLING_EXEMPT_ORG_IDS", "").split(",")
     if o.strip().isdigit()
 )
+# Stripe products whose name starts with this prefix are the plans the app
+# offers; each carries one licensed (monthly fee) and one metered (overage)
+# price. Read live from Stripe, so no price id is hard-coded here.
+STRIPE_PLAN_PRODUCT_PREFIX = os.getenv("STRIPE_PLAN_PRODUCT_PREFIX", "AiLunaPro Voice")
+STRIPE_TRIAL_DAYS = int(os.getenv("STRIPE_TRIAL_DAYS", "7"))
+
+# --- Voice AiLunaPro: sign-up email verification and bot protection --------
+# Outgoing mail. With SMTP_HOST unset, sign-up skips email verification and
+# logs a warning, so the app keeps working before the mailbox is wired in.
+SMTP_HOST = os.getenv("SMTP_HOST") or None
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME") or None
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD") or None
+SMTP_FROM = os.getenv("SMTP_FROM", "Voice AiLunaPro <service@ailunapro.com>")
+EMAIL_VERIFICATION_TTL_HOURS = int(os.getenv("EMAIL_VERIFICATION_TTL_HOURS", "48"))
+
+# Cloudflare Turnstile. Both keys set = a challenge is required at sign-up.
+TURNSTILE_SITE_KEY = os.getenv("TURNSTILE_SITE_KEY") or None
+TURNSTILE_SECRET_KEY = os.getenv("TURNSTILE_SECRET_KEY") or None
+
+# Per-IP limits, counted in Redis over a rolling hour.
+SIGNUP_MAX_PER_IP_PER_HOUR = int(os.getenv("SIGNUP_MAX_PER_IP_PER_HOUR", "5"))
+LOGIN_MAX_PER_IP_PER_HOUR = int(os.getenv("LOGIN_MAX_PER_IP_PER_HOUR", "30"))
 
 ENABLE_PROMETHEUS_METRICS = (
     os.getenv("ENABLE_PROMETHEUS_METRICS", "false").lower() == "true"

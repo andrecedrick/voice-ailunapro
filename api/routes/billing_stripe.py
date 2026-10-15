@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
 from pydantic import BaseModel
 
-from api.constants import STRIPE_TRIAL_MINUTE_CAP, UI_APP_URL
+from api.constants import STRIPE_TRIAL_DAYS, STRIPE_TRIAL_MINUTE_CAP, UI_APP_URL
 from api.db import db_client
 from api.db.models import UserModel
 from api.services.auth.depends import get_user_with_selected_organization
@@ -21,6 +21,8 @@ from api.services.billing import (
     create_portal_session,
     handle_stripe_event,
     is_enabled,
+    list_plans,
+    plan_by_id,
     verify_webhook_signature,
 )
 
@@ -28,7 +30,26 @@ router = APIRouter(prefix="/billing/stripe", tags=["billing"])
 
 
 class CheckoutRequest(BaseModel):
-    price_id: str
+    # A Stripe product id from GET /plans — never a raw price id, so the
+    # browser cannot check out a price that is not one of our plans.
+    plan_id: str
+
+
+class PlanResponse(BaseModel):
+    id: str
+    name: str
+    currency: str
+    monthly_amount: int
+    interval: str
+    included_minutes: int
+    overage_per_minute: str | None = None
+
+
+class PlansResponse(BaseModel):
+    billing_enabled: bool
+    trial_days: int
+    trial_minutes_cap: int
+    plans: list[PlanResponse]
 
 
 class CheckoutResponse(BaseModel):
@@ -52,6 +73,25 @@ def _require_billing() -> None:
         raise HTTPException(
             status_code=404, detail="Subscription billing is not configured"
         )
+
+
+@router.get("/plans", response_model=PlansResponse)
+async def get_plans() -> PlansResponse:
+    """The plans on sale, read live from Stripe. Public: the pricing page uses it."""
+    if not is_enabled():
+        return PlansResponse(
+            billing_enabled=False,
+            trial_days=STRIPE_TRIAL_DAYS,
+            trial_minutes_cap=STRIPE_TRIAL_MINUTE_CAP,
+            plans=[],
+        )
+    plans = await list_plans()
+    return PlansResponse(
+        billing_enabled=True,
+        trial_days=STRIPE_TRIAL_DAYS,
+        trial_minutes_cap=STRIPE_TRIAL_MINUTE_CAP,
+        plans=[PlanResponse(**p.public()) for p in plans],
+    )
 
 
 @router.get("/status", response_model=SubscriptionStatusResponse)
@@ -91,17 +131,38 @@ async def start_checkout(
     _require_billing()
 
     organization_id = user.selected_organization_id
+    plan = await plan_by_id(payload.plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Unknown plan")
+
     billing = await db_client.get_billing(organization_id)
+
+    # A live subscription changes plan in the customer portal, not through a
+    # second checkout that would bill the workspace twice.
+    if billing and billing.stripe_subscription_id and (billing.status or "") in {
+        "trialing",
+        "active",
+        "past_due",
+    }:
+        raise HTTPException(status_code=409, detail="already_subscribed")
+
+    # One trial per workspace: only one that never had a subscription gets it.
+    trial_days = (
+        STRIPE_TRIAL_DAYS
+        if billing is None or not billing.stripe_subscription_id
+        else 0
+    )
 
     base = UI_APP_URL.rstrip("/")
     try:
         url = await create_checkout_session(
             organization_id=organization_id,
-            price_id=payload.price_id,
+            plan=plan,
             success_url=f"{base}/billing?checkout=success",
             cancel_url=f"{base}/billing?checkout=cancelled",
             customer_email=getattr(user, "email", None),
             existing_customer_id=billing.stripe_customer_id if billing else None,
+            trial_days=trial_days,
         )
     except Exception as e:
         logger.error(

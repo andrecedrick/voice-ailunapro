@@ -614,11 +614,13 @@ async def get_daily_usage_breakdown(
     try:
         # Get organization to check if it has pricing
         org = await db_client.get_organization_by_id(user.selected_organization_id)
-        if not org or org.price_per_second_usd is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Daily breakdown is only available for organizations with pricing configured",
-            )
+        if not org:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        # BRAND: Voice AiLunaPro bills through Stripe, so organizations carry no
+        # per-second price. Upstream refused the breakdown for them (400), which
+        # left the overview dashboard empty; count calls and minutes anyway and
+        # report cost as zero. See BRAND.md.
+        price_per_second = org.price_per_second_usd or 0.0
 
         # Calculate date range
         end_date = datetime.now()
@@ -630,7 +632,7 @@ async def get_daily_usage_breakdown(
             user.selected_organization_id,
             start_date,
             end_date,
-            org.price_per_second_usd,
+            price_per_second,
         )
 
         return breakdown

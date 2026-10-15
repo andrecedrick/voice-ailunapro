@@ -39,6 +39,7 @@ from api.constants import (
 )
 from api.db import db_client
 from api.db.organization_billing_client import BILLABLE_STATUSES
+from api.services.billing.plans import Plan, plan_for_price
 
 _TIMEOUT = httpx.Timeout(15.0)
 
@@ -235,21 +236,24 @@ async def report_run_minutes(
 async def create_checkout_session(
     *,
     organization_id: int,
-    price_id: str,
+    plan: Plan,
     success_url: str,
     cancel_url: str,
     customer_email: str | None = None,
     existing_customer_id: str | None = None,
+    trial_days: int = 0,
 ) -> str:
-    """Open a Stripe Checkout session and return its URL.
+    """Open a Stripe Checkout session for a catalog plan and return its URL.
 
-    The organization id travels as both client_reference_id and session
-    metadata, which is what lets the webhook bind the resulting subscription to
-    the right workspace.
+    The subscription carries both of the plan's prices: the monthly fee and the
+    metered overage (no quantity — usage is reported per call). The
+    organization id travels as client_reference_id and as metadata on both the
+    session and the subscription, which is what lets the webhook bind the
+    result to the right workspace.
     """
     data: dict[str, Any] = {
         "mode": "subscription",
-        "line_items[0][price]": price_id,
+        "line_items[0][price]": plan.base_price_id,
         "line_items[0][quantity]": "1",
         "success_url": success_url,
         "cancel_url": cancel_url,
@@ -257,9 +261,19 @@ async def create_checkout_session(
         "metadata[organization_id]": str(organization_id),
         "subscription_data[metadata][organization_id]": str(organization_id),
         "allow_promotion_codes": "true",
+        "billing_address_collection": "auto",
+        # A card is taken even for the trial, so the plan rolls over into a
+        # paid subscription instead of silently lapsing on day 8.
+        "payment_method_collection": "always",
     }
+    if plan.metered_price_id:
+        data["line_items[1][price]"] = plan.metered_price_id
+    if trial_days > 0:
+        data["subscription_data[trial_period_days]"] = str(trial_days)
     if existing_customer_id:
         data["customer"] = existing_customer_id
+        data["customer_update[address]"] = "auto"
+        data["customer_update[name]"] = "auto"
     elif customer_email:
         data["customer_email"] = customer_email
 
@@ -324,36 +338,36 @@ def _as_datetime(value: Any) -> datetime | None:
         return None
 
 
-async def _included_minutes_for_subscription(subscription: Mapping[str, Any]) -> int:
-    """Read included minutes from the subscription's price metadata.
-
-    Each plan price carries `metadata[included_minutes]`; an unlabelled price
-    reports 0, which only affects what the customer is shown.
-    """
-    items = (subscription.get("items") or {}).get("data") or []
-    for item in items:
-        price = item.get("price") or {}
-        metadata = price.get("metadata") or {}
-        raw = metadata.get("included_minutes")
-        if raw:
-            try:
-                return int(raw)
-            except (TypeError, ValueError):
-                continue
-    return 0
+def _subscription_price_ids(subscription: Mapping[str, Any]) -> list[str]:
+    ids: list[str] = []
+    for item in (subscription.get("items") or {}).get("data") or []:
+        price = item.get("price")
+        if isinstance(price, dict) and price.get("id"):
+            ids.append(price["id"])
+        elif isinstance(price, str):
+            ids.append(price)
+    return ids
 
 
-def _plan_name_for_subscription(subscription: Mapping[str, Any]) -> str | None:
-    items = (subscription.get("items") or {}).get("data") or []
-    for item in items:
-        price = item.get("price") or {}
-        nickname = price.get("nickname")
-        if nickname:
-            return nickname
-        product = price.get("product")
-        if isinstance(product, str):
-            return product
+async def _plan_for_subscription(subscription: Mapping[str, Any]) -> Plan | None:
+    for price_id in _subscription_price_ids(subscription):
+        plan = await plan_for_price(price_id)
+        if plan is not None:
+            return plan
     return None
+
+
+def _current_period_end(subscription: Mapping[str, Any]) -> datetime | None:
+    """Top-level on older API versions, per item since 2025-03."""
+    top = _as_datetime(subscription.get("current_period_end"))
+    if top:
+        return top
+    ends = [
+        _as_datetime(item.get("current_period_end"))
+        for item in (subscription.get("items") or {}).get("data") or []
+    ]
+    ends = [e for e in ends if e]
+    return max(ends) if ends else None
 
 
 async def _organization_id_for_subscription(
@@ -392,13 +406,14 @@ async def _apply_subscription(subscription: Mapping[str, Any]) -> None:
         return
 
     status = subscription.get("status")
+    plan = await _plan_for_subscription(subscription)
     fields: dict[str, Any] = {
         "stripe_subscription_id": subscription.get("id"),
         "status": status,
-        "plan_name": _plan_name_for_subscription(subscription),
-        "included_minutes": await _included_minutes_for_subscription(subscription),
+        "plan_name": plan.name if plan else None,
+        "included_minutes": plan.included_minutes if plan else 0,
         "trial_ends_at": _as_datetime(subscription.get("trial_end")),
-        "current_period_end": _as_datetime(subscription.get("current_period_end")),
+        "current_period_end": _current_period_end(subscription),
         "last_event_at": datetime.now(UTC),
     }
     customer_id = subscription.get("customer")
@@ -475,7 +490,16 @@ async def handle_stripe_event(event: Mapping[str, Any]) -> None:
         existing = await db_client.get_billing_by_customer(customer_id)
         if existing is None:
             return
-        status = "active" if event_type == "invoice.paid" else "past_due"
+        if event_type == "invoice.payment_failed":
+            status = "past_due"
+        elif (existing.status or "") == "past_due":
+            # A paid invoice only clears a payment failure. It must NOT turn a
+            # trial into "active": the €0 invoice Stripe issues when a trial
+            # starts is also "paid", and promoting it would lift the trial
+            # minute cap. Trial → active arrives as customer.subscription.updated.
+            status = "active"
+        else:
+            status = existing.status
         await db_client.upsert_billing(
             existing.organization_id,
             status=status,

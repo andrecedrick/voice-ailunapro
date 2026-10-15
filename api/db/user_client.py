@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import func
+from sqlalchemy import func, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.future import select
 
@@ -149,6 +149,19 @@ class UserClient(BaseDBClient):
                 select(UserModel).where(func.lower(UserModel.email) == normalized_email)
             )
             return result.scalars().first()
+
+    async def mark_user_email_verified(self, user_id: int) -> None:
+        """Voice AiLunaPro: record that the user confirmed their address.
+
+        Idempotent: a second click on the same link keeps the first timestamp.
+        """
+        async with self.async_session() as session:
+            await session.execute(
+                update(UserModel)
+                .where(UserModel.id == user_id, UserModel.email_verified_at.is_(None))
+                .values(email_verified_at=datetime.now(timezone.utc))
+            )
+            await session.commit()
 
     async def create_user_with_email(
         self, email: str, password_hash: str, name: str | None = None

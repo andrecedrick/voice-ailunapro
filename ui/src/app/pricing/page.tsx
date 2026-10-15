@@ -34,14 +34,17 @@ type Competitor = {
 type ThemeName = "dark" | "light";
 type Currency = "EUR" | "USD" | "GBP";
 
-/* Live Stripe payment links — copied verbatim, never rewritten. */
+/* BRAND: plan CTAs go through sign-up, not straight to Stripe Payment Links.
+   A Payment Link creates a subscription that belongs to no workspace and
+   carries no overage price, so the app could never bind it. The in-app
+   checkout (Billing page) attaches both prices and the workspace id. */
 const PLANS: Plan[] = [
   {
     name: "Starter",
     base: 39,
     incl: 300,
     rate: 0.15,
-    url: "https://buy.stripe.com/4gMdRb3DB8Vvfoz7DNa7C00",
+    url: "/auth/signup?plan=starter",
     feat: [
       "2 concurrent calls",
       "1 voice agent",
@@ -56,7 +59,7 @@ const PLANS: Plan[] = [
     incl: 1500,
     rate: 0.11,
     featured: true,
-    url: "https://buy.stripe.com/fZudRb5LJ0oZb8jgaja7C01",
+    url: "/auth/signup?plan=pro",
     feat: [
       "10 concurrent calls",
       "5 voice agents",
@@ -70,7 +73,7 @@ const PLANS: Plan[] = [
     base: 449,
     incl: 5000,
     rate: 0.09,
-    url: "https://buy.stripe.com/14AeVf1vt4Ff0tF2jta7C02",
+    url: "/auth/signup?plan=business",
     feat: [
       "30 concurrent calls",
       "Unlimited agents",
@@ -84,7 +87,7 @@ const PLANS: Plan[] = [
     base: 999,
     incl: 15000,
     rate: 0.06,
-    url: "https://buy.stripe.com/5kQbJ33DB3Bb4JV0bla7C03",
+    url: "/auth/signup?plan=agency",
     feat: [
       "100 concurrent calls",
       "Sub-accounts for each client",
@@ -912,7 +915,7 @@ export default function PricingPage() {
             </button>
             <a
               className="pr-cta"
-              href="https://buy.stripe.com/fZudRb5LJ0oZb8jgaja7C01"
+              href="/auth/signup?plan=pro"
               style={css({
                 display: "inline-flex",
                 alignItems: "center",

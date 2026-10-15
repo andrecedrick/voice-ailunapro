@@ -70,6 +70,9 @@ class UserModel(Base):
     is_superuser = Column(Boolean, default=False)
     email = Column(String, nullable=True)
     password_hash = Column(String, nullable=True)
+    # Voice AiLunaPro: set when the address is confirmed from the sign-up email.
+    # NULL = unconfirmed; local-auth sign-in is refused until it is set.
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index(

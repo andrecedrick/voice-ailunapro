@@ -29,6 +29,10 @@ section 2 only if there is no other way.
 | `ui/src/components/brand/AppTopbar.tsx`, `CommandPalette.tsx`, `LanguageMenu.tsx`, `nav.ts`, `theme.ts`, `PlanNotice.tsx` | The template's top bar, the ⌘K palette, the language picker, the shared nav map, the theme switch, and our plans notice on the billing page. |
 | `ui/src/i18n/` | The language layer: 8 languages (en, fr, es, de, it, pt, ru, zh), **English by default**, choice kept in the `al_locale` cookie and read on the server so the first paint is already translated. Every dictionary is typed against `en.ts`, so a missing key fails the build. |
 | `ui/src/app/icon.png`, `ui/src/app/apple-icon.png` | Favicon and home-screen icon (the sphere). |
+| `ui/src/components/brand/SubscriptionPanel.tsx`, `ui/src/app/auth/verify/`, `ui/src/components/brand/Turnstile.tsx`, `ui/src/lib/ailunapro-api.ts` | Billing panel (plans from Stripe, 7-day trial, checkout, customer portal), email-confirmation page, Cloudflare Turnstile widget, typed calls to our endpoints. |
+| `api/services/billing/plans.py` | Plan catalog read live from Stripe: every product named `AiLunaPro Voice — …` with one monthly price and one metered price. Doubles as the checkout allowlist. |
+| `api/services/auth/email_verification.py`, `api/services/auth/signup_guard.py`, `api/services/email/` | Sign-up confirmation email (8 languages, signed 48 h link), bot protection (honeypot, fill timer, disposable domains, per-IP limits, Turnstile), SMTP mailer. |
+| `api/alembic/versions/e3b81f6c2a57_add_user_email_verified_at.py` | Adds `users.email_verified_at` and marks every existing user verified. |
 | `ui/public/ailunapro-logo.png` | Wordmark (violet→cyan gradient on transparency). |
 | `ui/public/ailunapro-mark.png` | Square icon, 512px. |
 | `ui/src/lib/productVersion.ts` | Our own version numbering, kept apart from Dograh's. |
@@ -59,8 +63,12 @@ names the file.
 | File | The patch | If it is lost |
 | --- | --- | --- |
 | `ui/src/app/layout.tsx` | `import "../styles/ailunapro.css"` **after** globals.css; Inter + Sora via next/font; `<I18nProvider>` + `<html lang>` from the cookie; translated description. | **The whole design reverts**, and every screen falls back to English. This is the critical file. |
+| `api/routes/auth.py` | Sign-up runs the bot guard and sends the confirmation email; sign-in refuses unconfirmed addresses (`403 email_not_verified`) and is rate-limited; new `/auth/signup-config`, `/auth/verify-email`, `/auth/resend-verification`. | Anyone (and any bot) can sign up and call straight away. |
+| `api/db/models.py`, `api/db/user_client.py` | `UserModel.email_verified_at` + `mark_user_email_verified`. | Sign-in crashes on the missing attribute. |
+| `api/routes/organization_usage.py` | Daily breakdown no longer refuses orgs without per-second pricing (all of ours). | Overview KPIs show dashes forever. |
+| `ui/src/app/pricing/page.tsx` | Plan buttons go to `/auth/signup?plan=…` instead of Stripe Payment Links. | Payment-Link subscriptions belong to no workspace and carry no overage price. |
 | `ui/src/app/favicon.ico` | Replaced with the sphere icon. | Dograh's favicon returns in the browser tab. |
-| `ui/src/app/billing/page.tsx` | Upstream's "buy credits at app.dograh.com" notice replaced by `<PlanNotice />`. | **Revenue leak**: our customers are sent to buy from Dograh. |
+| `ui/src/app/billing/page.tsx` | In OSS mode: `<SubscriptionPanel />` (our plans, Stripe checkout and portal) replaces Dograh's credit cards and its "buy credits at app.dograh.com" notice. | **Revenue leak**: our customers are sent to buy from Dograh. |
 | `ui/src/app/api-keys/page.tsx` | "Sign up on app.dograh.com" → contact support. | Same leak, smaller. |
 | `ui/src/components/BrandLogo.tsx` | Points at `/ailunapro-*.png`; adds the `pill` prop. | Dograh logo returns (or 404s). |
 | `ui/src/components/layout/AppSidebar.tsx` | Nav from `brand/nav.ts` with translated labels, logo + version chip, support link in place of "Hire an Expert". Upstream's "Update — Dograh x.y is out" / "Latest" badges removed: they told customers what we are built on. Release watching runs as André's daily scheduled task instead. | Dograh's nav, its services CTA and its update badge return. |
@@ -104,7 +112,17 @@ If step 2 fails, do not ship. Re-apply the named patch from this table — the
 
 ---
 
-## 4. What is deliberately NOT done
+## 4. Runtime configuration (in `/opt/dograh/.env`, never in Git)
+
+| Variable | Effect when set |
+| --- | --- |
+| `STRIPE_SECRET_KEY` | Turns subscription billing on (plans, checkout, call gate). |
+| `STRIPE_WEBHOOK_SECRET` | Lets `/api/v1/billing/stripe/webhook` accept Stripe events. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` | Turns on sign-up email confirmation. Unset = accounts are confirmed on the spot, as before. |
+| `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Adds the Cloudflare challenge to sign-up. |
+| `BILLING_EXEMPT_ORG_IDS` | Workspaces that call without a subscription (yours). |
+
+## 5. What is deliberately NOT done
 
 - **Only the shell is translated.** Sidebar, top bar, command palette,
   overview, sign-in, sign-up and the billing notice follow the language menu.

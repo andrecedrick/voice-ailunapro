@@ -6,7 +6,7 @@ import BillingPage from "./page";
 const mocks = vi.hoisted(() => ({
     getCredits: vi.fn(), push: vi.fn(), error: vi.fn(),
     params: new URLSearchParams(),
-    auth: { isAuthenticated: true, loading: false },
+    auth: { isAuthenticated: true, loading: false, user: { id: 1 } },
     config: { deploymentMode: "saas" },
 }));
 vi.mock("next/navigation", () => ({
@@ -27,7 +27,21 @@ vi.mock("@/hooks/useOrganizationTimezone", () => ({
     useOrganizationTimezone: () => "America/Los_Angeles",
 }));
 vi.mock("@/lib/metaPixel", () => ({ trackMetaInitiateCheckout: vi.fn() }));
-vi.mock("sonner", () => ({ toast: { error: mocks.error } }));
+vi.mock("sonner", () => ({ toast: { error: mocks.error, success: vi.fn(), message: vi.fn() } }));
+// BRAND: Voice AiLunaPro subscription endpoints (OSS billing view).
+vi.mock("@/lib/ailunapro-api", () => ({
+    billingApi: {
+        plans: vi.fn().mockResolvedValue({ data: { billing_enabled: true, trial_days: 7, trial_minutes_cap: 50, plans: [
+            { id: "prod_s", name: "Starter", currency: "eur", monthly_amount: 4900, interval: "month",
+              included_minutes: 300, overage_per_minute: "9" },
+        ] } }),
+        status: vi.fn().mockResolvedValue({ data: { billing_enabled: true, subscribed: false, status: null,
+            plan_name: null, included_minutes: 0, trial_minutes_used: 0, trial_minutes_cap: 50,
+            trial_ends_at: null, current_period_end: null } }),
+        checkout: vi.fn(), portal: vi.fn(),
+    },
+    errorDetail: () => undefined,
+}));
 
 const response = {
     data: { remaining_credits: 1000, total_credits_used: 25, ledger_entries: [],
@@ -114,11 +128,12 @@ describe("billing ledger filters", () => {
         expect(screen.queryByText("No entries match these filters.")).toBeNull();
     });
 
-    it("preserves the OSS credit view without ledger filters", async () => {
+    it("shows Voice AiLunaPro plans instead of Dograh credits in OSS mode", async () => {
         mocks.config.deploymentMode = "oss";
         render(<BillingPage />);
-        await screen.findByText("Credits remaining");
-        expect(mocks.getCredits.mock.calls[0][0].query).toEqual({ page: 1, limit: 50 });
+        await screen.findByText("Starter");
+        expect(screen.queryByText("Credits remaining")).toBeNull();
+        expect(screen.queryByText(/app\.dograh\.com/)).toBeNull();
         expect(screen.queryByLabelText("Activity")).toBeNull();
     });
 });

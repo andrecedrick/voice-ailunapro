@@ -9,7 +9,7 @@ import packageJson from "../../package.json";
  *
  * Bump this by hand in the same commit that ships the change.
  */
-export const VOICE_VERSION = "1.1";
+export const VOICE_VERSION = "1.2";
 
 /**
  * The Dograh release this build sits on, read from package.json so it tracks

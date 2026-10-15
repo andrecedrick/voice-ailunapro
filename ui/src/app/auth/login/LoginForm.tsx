@@ -11,12 +11,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/i18n";
+import { authApi } from "@/lib/ailunapro-api";
 
 export function LoginForm({ signupEnabled }: { signupEnabled: boolean }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const a = useI18n().t.auth;
+  // BRAND: set when the server refuses an unconfirmed address. See BRAND.md.
+  const [unverified, setUnverified] = useState(false);
+  const { t, locale } = useI18n();
+  const a = t.auth;
+
+  const resend = async () => {
+    const res = await authApi.resendVerification(email, locale);
+    if (res.response?.status === 429) toast.error(a.tooMany);
+    else toast.success(a.resent);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +39,15 @@ export function LoginForm({ signupEnabled }: { signupEnabled: boolean }) {
 
       if (res.error || !res.data) {
         const detail = (res.error as { detail?: string })?.detail;
+        const status = res.response?.status;
+        if (status === 403 && detail === "email_not_verified") {
+          setUnverified(true);
+          return;
+        }
+        if (status === 429) {
+          toast.error(a.tooMany);
+          return;
+        }
         toast.error(detail || a.loginFailed);
         return;
       }
@@ -56,6 +75,19 @@ export function LoginForm({ signupEnabled }: { signupEnabled: boolean }) {
           {a.signInSub}
         </p>
       </div>
+
+      {unverified && (
+        <div className="al-notice space-y-2 text-sm">
+          <p>{a.notVerified}</p>
+          <button
+            type="button"
+            onClick={resend}
+            className="font-semibold text-[color:var(--al-accent)] underline-offset-4 hover:underline"
+          >
+            {a.resend}
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">

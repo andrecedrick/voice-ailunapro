@@ -9,17 +9,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { createMpsCreditPurchaseUrlApiV1OrganizationsUsageMpsCreditsPurchaseUrlPost, getBillingCreditsApiV1OrganizationsBillingCreditsGet } from "@/client/sdk.gen";
 import type { MpsBillingCreditsResponse, MpsCreditLedgerEntryResponse } from "@/client/types.gen";
-import { PlanNotice } from "@/components/brand/PlanNotice";
+import { SubscriptionPanel } from "@/components/brand/SubscriptionPanel";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     Table,
@@ -32,6 +31,7 @@ import {
 import { useAppConfig } from "@/context/AppConfigContext";
 import { useOrgConfig } from "@/context/OrgConfigContext";
 import { useOrganizationTimezone } from "@/hooks/useOrganizationTimezone";
+import { useI18n } from "@/i18n";
 import { detailFromError } from "@/lib/apiError";
 import { useAuth } from "@/lib/auth";
 import { getBillingActivity, getBillingDateRange, getBillingPeriod } from "@/lib/billingFilters";
@@ -115,6 +115,7 @@ export default function BillingPage() {
     const searchParams = useSearchParams();
     const auth = useAuth();
     const { config, loading: configLoading } = useAppConfig();
+    const { t } = useI18n();
     const { orgContext, loading: orgLoading } = useOrgConfig();
     const organizationTimezone = useOrganizationTimezone();
     const [credits, setCredits] = useState<MpsBillingCreditsResponse | null>(null);
@@ -134,10 +135,8 @@ export default function BillingPage() {
     const hasAppConfig = !configLoading && config !== null;
     const isOssMode = hasAppConfig && config.deploymentMode === "oss";
     const canPurchaseCredits = hasAppConfig && config.deploymentMode !== "oss";
-    const totalQuota = credits?.total_quota ?? 0;
     const remainingCredits = credits?.remaining_credits ?? 0;
     const usedCredits = credits?.total_credits_used ?? 0;
-    const usagePercent = totalQuota > 0 ? Math.min(100, Math.round((usedCredits / totalQuota) * 100)) : 0;
 
     const ledgerEntries = useMemo(() => credits?.ledger_entries ?? [], [credits?.ledger_entries]);
     const ledgerPage = credits?.page ?? currentPage;
@@ -237,9 +236,11 @@ export default function BillingPage() {
         }
     };
 
-    if ((loading && !credits && !fetchError) || configLoading || orgLoading) {
+    // BRAND: in OSS mode the page shows our subscription panel, which loads its
+    // own data — don't hold it behind Dograh's credit endpoint.
+    if ((!isOssMode && loading && !credits && !fetchError) || configLoading || orgLoading) {
         return (
-            <PageLayout title="Billing" description="Credits, balance, and account usage for your organization.">
+            <PageLayout title={isOssMode ? t.nav.billing : "Billing"} description={isOssMode ? t.billing.pageSub : "Credits, balance, and account usage for your organization."}>
                 <div className="grid gap-4 md:grid-cols-2">
                     <Skeleton className="h-36 rounded-lg" />
                     <Skeleton className="h-36 rounded-lg" />
@@ -250,22 +251,29 @@ export default function BillingPage() {
     }
 
     return (
-        <PageLayout title="Billing" description="Credits, balance, and account usage for your organization."
-            actions={<><Button variant="outline" onClick={handleRefresh} disabled={loading}>
+        <PageLayout title={isOssMode ? t.nav.billing : "Billing"} description={isOssMode ? t.billing.pageSub : "Credits, balance, and account usage for your organization."}
+            actions={<>{!isOssMode && <Button variant="outline" onClick={handleRefresh} disabled={loading}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
                 Refresh
-            </Button>
+            </Button>}
                 {canPurchaseCredits && (
                     <Button onClick={handlePurchaseCredits} disabled={purchasing}>
                         <CreditCard className="h-4 w-4 mr-2" />
                         {purchasing ? "Opening..." : "Add Credits"}
                     </Button>
                 )}</>}>
-            {/* BRAND: upstream sends OSS users to buy credits at app.dograh.com.
-                Our customers buy our plans instead. See BRAND.md. */}
-            {isOssMode && <PlanNotice />}
+            {/* BRAND: upstream sends OSS users to buy credits at app.dograh.com
+                and shows Dograh's managed-service credit balance. Our customers
+                see their Voice AiLunaPro subscription and plans instead; the
+                Dograh credit cards below render only outside OSS mode.
+                See BRAND.md. */}
+            {isOssMode && (
+                <Suspense fallback={null}>
+                    <SubscriptionPanel />
+                </Suspense>
+            )}
 
-            <div className="grid gap-4 md:grid-cols-2">
+            {!isOssMode && <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>{isOssMode ? "Credits remaining" : "Credit balance"}</CardDescription>
@@ -290,7 +298,7 @@ export default function BillingPage() {
                         </p>
                     </CardContent>
                 </Card>
-            </div>
+            </div>}
 
             {!isOssMode ? (
                 <Card>
@@ -409,20 +417,7 @@ export default function BillingPage() {
                         )}
                     </CardContent>
                 </Card>
-            ) : (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Credit Usage</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Progress value={usagePercent} />
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                            <span>{usagePercent}% used</span>
-                            <span>{formatCredits(remainingCredits)} of {formatCredits(totalQuota)} remaining</span>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+            ) : null}
         </PageLayout>
     );
 }
