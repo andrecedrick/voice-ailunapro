@@ -21,6 +21,7 @@ from api.constants import (
     SMTP_HOST,
     SMTP_PASSWORD,
     SMTP_PORT,
+    SMTP_REPLY_TO,
     SMTP_USERNAME,
 )
 
@@ -62,6 +63,8 @@ async def send_email(*, to: str, subject: str, text: str, html: str) -> None:
     message["From"] = SMTP_FROM
     message["To"] = to
     message["Subject"] = subject
+    if SMTP_REPLY_TO:
+        message["Reply-To"] = SMTP_REPLY_TO
     message["Message-ID"] = make_msgid(domain="ailunapro.com")
     message.set_content(text)
     message.add_alternative(html, subtype="html")

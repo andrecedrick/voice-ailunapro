@@ -109,6 +109,10 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME") or None
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD") or None
 SMTP_FROM = os.getenv("SMTP_FROM", "Voice AiLunaPro <service@ailunapro.com>")
+# Mail now leaves on a dedicated sending subdomain, which has to match a
+# verified domain at the relay. Replies still belong in the real support
+# inbox, so the From and the Reply-To are allowed to differ.
+SMTP_REPLY_TO = os.getenv("SMTP_REPLY_TO", "")
 EMAIL_VERIFICATION_TTL_HOURS = int(os.getenv("EMAIL_VERIFICATION_TTL_HOURS", "48"))
 # A reset link is a password in the inbox: short-lived, and single-use because
 # the token is signed against the current password hash (see password_reset.py).
