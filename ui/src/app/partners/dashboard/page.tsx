@@ -42,6 +42,13 @@ function Dashboard() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
       <h1 className="text-2xl font-semibold">{t.title} · <span className="font-mono">{stats.code}</span></h1>
+      {stats.tier_pct && stats.tier_min && stats.active < stats.tier_min ? (
+        <p className="text-sm text-muted-foreground">
+          {locale === "fr"
+            ? `Encore ${stats.tier_min - stats.active} client(s) actif(s) pour passer à ${stats.tier_pct} %.`
+            : `${stats.tier_min - stats.active} more active customer(s) to move up to ${stats.tier_pct}%.`}
+        </p>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         {tiles.map(([label, value]) => (
           <div key={label} className="card-weave border p-5">

@@ -34,6 +34,7 @@ export const zh: Dict = {
     runs: "智能体运行记录",
     billing: "账单",
     reports: "报告",
+    partners: "合作伙伴",
     pricing: "价格",
     settings: "设置",
   },

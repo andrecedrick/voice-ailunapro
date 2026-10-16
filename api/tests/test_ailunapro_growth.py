@@ -22,3 +22,9 @@ def test_partner_token_is_per_code():
     assert growth.check_partner_token("LUNA-ALICE", t)
     assert not growth.check_partner_token("LUNA-BOB", t)
     assert growth.normalize_handle("@alice.k!") == "ALICEK"
+
+
+def test_commission_tier():
+    assert growth.commission_pct(0) == 25
+    assert growth.commission_pct(9) == 25
+    assert growth.commission_pct(10) == 30

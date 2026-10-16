@@ -34,6 +34,7 @@ export const fr: Dict = {
     runs: "Exécutions d'agents",
     billing: "Facturation",
     reports: "Rapports",
+    partners: "Partenaires",
     pricing: "Tarifs",
     settings: "Paramètres",
   },

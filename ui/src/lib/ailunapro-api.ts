@@ -136,12 +136,18 @@ export type PartnerStats = {
   mrr_cents: number;
   commission_pct: number;
   commission_cents: number;
+  tier_pct?: number;
+  tier_min?: number;
 };
 
 /** Founders offer + influencer programme. OURS — see api/services/billing/growth.py. */
 export const growthApi = {
   founders: (): Res<FoundersOffer> =>
     client.get({ url: "/api/v1/ailunapro/founders" }) as Res<FoundersOffer>,
+  terms: (): Res<{ percent_off: number; commission_pct: number; tier_pct: number; tier_min: number }> =>
+    client.get({ url: "/api/v1/ailunapro/partners/terms" }) as Res<{
+      percent_off: number; commission_pct: number; tier_pct: number; tier_min: number;
+    }>,
   createPartner: (body: { name: string; email: string; handle: string }): Res<PartnerCreated> =>
     client.post({ url: "/api/v1/ailunapro/partners", body, headers: json }) as Res<PartnerCreated>,
   partnerStats: (code: string, token: string): Res<PartnerStats> =>

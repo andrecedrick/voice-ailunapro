@@ -26,6 +26,12 @@ async def get_founders_offer() -> dict:
         raise HTTPException(status_code=424, detail="founders_unavailable")
 
 
+@router.get("/partners/terms")
+async def partner_terms() -> dict:
+    """Public programme terms, for the partners landing page."""
+    return growth.programme_terms()
+
+
 class PartnerIn(BaseModel):
     name: str = Field(min_length=2, max_length=80)
     email: EmailStr
@@ -62,7 +68,9 @@ async def create_partner(payload: PartnerIn, request: Request) -> PartnerOut:
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:  # noqa: BLE001
-        logger.error("Partner creation failed: {}", type(e).__name__)
+        from api.services.billing import stripe_error_message
+
+        logger.error("Partner creation failed: {}", stripe_error_message(e))
         raise HTTPException(status_code=424, detail="stripe_unavailable")
 
     code = promo["code"]

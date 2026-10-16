@@ -38,6 +38,7 @@ export const en = {
     runs: "Agent runs",
     billing: "Billing",
     reports: "Reports",
+    partners: "Partners",
     pricing: "Pricing",
     settings: "Settings",
   },

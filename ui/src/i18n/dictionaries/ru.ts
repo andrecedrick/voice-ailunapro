@@ -34,6 +34,7 @@ export const ru: Dict = {
     runs: "Запуски агентов",
     billing: "Оплата",
     reports: "Отчёты",
+    partners: "Партнёры",
     pricing: "Тарифы",
     settings: "Настройки",
   },

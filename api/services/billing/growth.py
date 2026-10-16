@@ -27,7 +27,10 @@ FOUNDER_ENDS_AT = os.getenv("FOUNDER_ENDS_AT", "2026-12-31T23:59:00+01:00")
 # "seats:percent" per wave, in order. Percent off the first month.
 FOUNDER_WAVES = os.getenv("FOUNDER_WAVES", "10:30,10:20,10:0")
 PARTNER_PERCENT_OFF = int(os.getenv("PARTNER_PERCENT_OFF", "20"))
-PARTNER_COMMISSION_PCT = int(os.getenv("PARTNER_COMMISSION_PCT", "20"))
+PARTNER_COMMISSION_PCT = int(os.getenv("PARTNER_COMMISSION_PCT", "25"))
+# Higher rate once a partner has this many paying customers at once.
+PARTNER_TIER_PCT = int(os.getenv("PARTNER_TIER_PCT", "30"))
+PARTNER_TIER_MIN = int(os.getenv("PARTNER_TIER_MIN", "10"))
 CODE_PREFIX = "LUNA-"
 _LIVE = {"trialing", "active", "past_due"}
 _CACHE_SECONDS = 60
@@ -234,12 +237,29 @@ async def partner_stats(promotion_code_id: str, code: str) -> dict:
                 mrr_cents += int(price.get("unit_amount") or 0) * int(
                     item.get("quantity") or 1
                 )
+    pct = commission_pct(live)
     return {
         "signups": signups,
         "active": live,
         "mrr_cents": mrr_cents,
+        "commission_pct": pct,
+        "commission_cents": mrr_cents * pct // 100,
+        "tier_pct": PARTNER_TIER_PCT,
+        "tier_min": PARTNER_TIER_MIN,
+    }
+
+
+def commission_pct(active_customers: int) -> int:
+    """25 % of every payment, 30 % once 10 paying customers are active."""
+    return PARTNER_TIER_PCT if active_customers >= PARTNER_TIER_MIN else PARTNER_COMMISSION_PCT
+
+
+def programme_terms() -> dict:
+    return {
+        "percent_off": PARTNER_PERCENT_OFF,
         "commission_pct": PARTNER_COMMISSION_PCT,
-        "commission_cents": mrr_cents * PARTNER_COMMISSION_PCT // 100,
+        "tier_pct": PARTNER_TIER_PCT,
+        "tier_min": PARTNER_TIER_MIN,
     }
 
 

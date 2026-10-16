@@ -1,51 +1,171 @@
 "use client";
 
-/** Influencer sign-up → LUNA-<HANDLE> code + private dashboard. OURS. */
+/**
+ * Partner programme landing + sign-up. OURS — design from AiLunaPro_Voice_Partners.html.
+ * Terms come from the API (/ailunapro/partners/terms) so the page never shows a
+ * rate the backend does not pay. The code card is labelled as an example.
+ */
 import { Check, Copy, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useI18n } from "@/i18n";
 import { errorDetail, growthApi, type PartnerCreated } from "@/lib/ailunapro-api";
 
-const TXT = {
+type Terms = { percent_off: number; commission_pct: number; tier_pct: number; tier_min: number };
+const DEFAULT_TERMS: Terms = { percent_off: 20, commission_pct: 25, tier_pct: 30, tier_min: 10 };
+const PLANS = [39, 149, 449, 999];
+
+const T = {
   fr: {
-    title: "Programme partenaires Voice AiLunaPro",
-    sub: "Recevez votre code LUNA-… : vos abonnés obtiennent une remise, vous touchez une commission chaque mois tant qu'ils restent clients.",
+    badge: "PROGRAMME PARTENAIRES",
+    badgeSub: "Commission récurrente, chaque mois",
+    h1a: "Partagez votre code.",
+    h1b: "Gagnez pendant qu'ils parlent.",
+    lead: "Obtenez votre code LUNA personnel. Votre audience économise sur Voice AiLunaPro, et vous touchez une commission chaque mois tant qu'ils restent abonnés.",
+    cta: "Obtenir mon code — gratuit",
+    estimate: "Estimer mes gains",
+    rate: "Commission mensuelle",
+    off: "de remise pour votre audience",
+    lifetime: "À vie",
+    lifetimeSub: "Tant qu'ils restent abonnés",
+    example: "EXEMPLE",
+    yourCode: "VOTRE CODE PARTENAIRE",
+    active: "Actif",
+    exampleNote: (tier: number, min: number) => `Passez à ${tier} % dès ${min} clients payants actifs.`,
+    howTag: "01 — FONCTIONNEMENT",
+    howTitle: "De l'inscription au paiement en trois étapes",
+    steps: [
+      ["Recevez votre code", "Inscrivez-vous en 30 secondes : votre code LUNA et votre tableau de bord sont créés instantanément."],
+      ["Partagez-le", "Whop, YouTube, TikTok, Instagram, newsletter… Votre audience obtient une remise sur son 1er mois."],
+      ["Encaissez chaque mois", "Chaque abonnement payé avec votre code vous rapporte une commission récurrente, suivie en temps réel."],
+    ],
+    earnTag: "02 — GAINS",
+    earnTitle: "Combien pouvez-vous gagner ?",
+    earnSub: "Ajustez selon votre audience.",
+    subs: "Abonnés parrainés",
+    plan: "Formule moyenne / mois",
+    monthly: "Commission mensuelle estimée",
+    yearly: "Par an",
+    rateLbl: "Taux appliqué",
+    disclaimer: "Estimation indicative. Commissions versées chaque mois sur les abonnements actifs et payés, après 30 jours.",
+    claim: "Réclamez votre code LUNA",
+    claimSub: "Gratuit. Aucun volume minimum. Votre code est prêt immédiatement.",
+    perks: (t: Terms) => [
+      `${t.commission_pct} % de commission récurrente, ${t.tier_pct} % dès ${t.tier_min} clients`,
+      `−${t.percent_off} % sur le 1er mois pour votre audience`,
+      "Tableau de bord en temps réel",
+    ],
     name: "Nom",
     email: "E-mail",
-    handle: "Pseudo (réseaux sociaux / Whop)",
+    handle: "Pseudo",
+    handleHint: "Réseau social ou Whop — sert à créer votre code",
     submit: "Obtenir mon code",
-    done: "Votre code est prêt — le lien du tableau de bord vous a aussi été envoyé par e-mail.",
-    code: "Code",
-    share: "Lien à partager",
+    payouts: "Paiements sécurisés via Stripe.",
+    done: "CODE CRÉÉ",
+    welcome: (n: string) => `Bienvenue, ${n}.`,
+    copy: "Copier le lien",
+    copied: "Copié",
+    sent: (e: string) => `Le lien de votre tableau de bord a été envoyé à ${e}. Chaque abonnement payé avec votre code est suivi automatiquement.`,
     dash: "Ouvrir mon tableau de bord",
-    terms: (p: number, c: number) => `Vos abonnés : −${p} % le 1er mois. Vous : ${c} % du revenu mensuel récurrent généré.`,
-    errors: { code_taken: "Ce pseudo est déjà pris.", invalid_handle: "Pseudo invalide." } as Record<string, string>,
+    faqTitle: "Questions fréquentes",
+    faqs: (t: Terms) => [
+      ["Combien vais-je gagner ?", `${t.commission_pct} % de chaque paiement mensuel de vos filleuls, puis ${t.tier_pct} % dès que ${t.tier_min} clients payants sont actifs en même temps — tant qu'ils restent abonnés.`],
+      ["Quand suis-je payé ?", "Chaque mois, pour les abonnements payés depuis plus de 30 jours (délai de remboursement)."],
+      ["Comment mes filleuls sont-ils suivis ?", "Par votre lien ?ref=LUNA-… (mémorisé 30 jours) ou par votre code saisi au paiement. Les deux sont crédités automatiquement."],
+      ["Puis-je cumuler avec l'Offre Fondateurs ?", "Votre audience obtient la meilleure des deux remises, et vous êtes crédité dans tous les cas."],
+      ["Y a-t-il un minimum ?", "Non. L'inscription est gratuite, sans volume minimum."],
+    ],
+    errors: { code_taken: "Ce pseudo est déjà pris.", invalid_handle: "Pseudo invalide.", stripe_unavailable: "Service momentanément indisponible, réessayez dans quelques minutes." } as Record<string, string>,
   },
   en: {
-    title: "Voice AiLunaPro partner programme",
-    sub: "Get your LUNA-… code: your audience gets a discount, you earn a monthly commission for as long as they stay.",
+    badge: "PARTNER PROGRAMME",
+    badgeSub: "Recurring commission, every month",
+    h1a: "Share your code.",
+    h1b: "Earn while they talk.",
+    lead: "Get your personal LUNA code. Your audience saves on AiLunaPro Voice, and you earn a monthly commission for as long as they stay subscribed.",
+    cta: "Get my code — free",
+    estimate: "Estimate earnings",
+    rate: "Monthly commission",
+    off: "off for your audience",
+    lifetime: "Lifetime",
+    lifetimeSub: "As long as they stay",
+    example: "EXAMPLE",
+    yourCode: "YOUR PARTNER CODE",
+    active: "Active",
+    exampleNote: (tier: number, min: number) => `Move up to ${tier}% from ${min} active paying customers.`,
+    howTag: "01 — HOW IT WORKS",
+    howTitle: "From sign-up to payout in three steps",
+    steps: [
+      ["Get your code", "Sign up in 30 seconds: your LUNA code and dashboard are created instantly."],
+      ["Share it", "Whop, YouTube, TikTok, Instagram, newsletter… Your audience gets a discount on month one."],
+      ["Get paid monthly", "Every paid subscription with your code earns you a recurring commission, tracked in real time."],
+    ],
+    earnTag: "02 — EARNINGS",
+    earnTitle: "How much could you earn?",
+    earnSub: "Move the sliders to match your audience.",
+    subs: "Referred subscribers",
+    plan: "Average plan / month",
+    monthly: "Estimated monthly commission",
+    yearly: "Per year",
+    rateLbl: "Rate applied",
+    disclaimer: "Indicative estimate. Commissions are paid monthly on active, paid subscriptions after 30 days.",
+    claim: "Claim your LUNA code",
+    claimSub: "Free to join. No minimum volume. Your code is ready instantly.",
+    perks: (t: Terms) => [
+      `${t.commission_pct}% recurring commission, ${t.tier_pct}% from ${t.tier_min} customers`,
+      `−${t.percent_off}% on month one for your audience`,
+      "Real-time dashboard",
+    ],
     name: "Name",
     email: "Email",
-    handle: "Handle (social / Whop)",
+    handle: "Handle",
+    handleHint: "Social or Whop — used to build your code",
     submit: "Get my code",
-    done: "Your code is ready — the dashboard link was also emailed to you.",
-    code: "Code",
-    share: "Link to share",
+    payouts: "Payouts handled securely via Stripe.",
+    done: "CODE GENERATED",
+    welcome: (n: string) => `Welcome aboard, ${n}.`,
+    copy: "Copy link",
+    copied: "Copied",
+    sent: (e: string) => `We've sent your dashboard link to ${e}. Every paid subscription with your code is tracked automatically.`,
     dash: "Open my dashboard",
-    terms: (p: number, c: number) => `Your audience: −${p}% on month one. You: ${c}% of the recurring revenue generated.`,
-    errors: { code_taken: "This handle is already taken.", invalid_handle: "Invalid handle." } as Record<string, string>,
+    faqTitle: "Questions, answered",
+    faqs: (t: Terms) => [
+      ["How much will I earn?", `${t.commission_pct}% of every monthly payment from your referrals, then ${t.tier_pct}% once ${t.tier_min} paying customers are active at once — for as long as they stay.`],
+      ["When do I get paid?", "Monthly, for subscriptions paid for more than 30 days (refund window)."],
+      ["How are referrals tracked?", "Through your ?ref=LUNA-… link (remembered 30 days) or your code entered at checkout. Both are credited automatically."],
+      ["Does it stack with the Founders offer?", "Your audience gets the better of the two discounts, and you are credited either way."],
+      ["Is there a minimum?", "No. Free to join, no minimum volume."],
+    ],
+    errors: { code_taken: "This handle is already taken.", invalid_handle: "Invalid handle.", stripe_unavailable: "Service temporarily unavailable, please retry in a few minutes." } as Record<string, string>,
   },
 };
 
+const GRAD = "bg-[linear-gradient(135deg,#7C3AED,#22D3EE)]";
+const TEXT_GRAD = "bg-[linear-gradient(135deg,#A855F7,#22D3EE)] bg-clip-text text-transparent";
+const MONO = "font-mono text-[11px] tracking-[0.14em]";
+const CARD = "rounded-[20px] border border-white/[0.07] bg-[#0E1530]";
+
 export default function PartnersPage() {
   const { locale } = useI18n();
-  const t = locale === "fr" ? TXT.fr : TXT.en;
+  const t = locale === "fr" ? T.fr : T.en;
+  const [terms, setTerms] = useState<Terms>(DEFAULT_TERMS);
+  const [subs, setSubs] = useState(20);
+  const [price, setPrice] = useState(149);
   const [form, setForm] = useState({ name: "", email: "", handle: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [res, setRes] = useState<PartnerCreated | null>(null);
   const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState<number | null>(0);
+
+  useEffect(() => {
+    void growthApi.terms().then((r) => r.data && setTerms(r.data));
+  }, []);
+
+  const eur = (v: number) =>
+    new Intl.NumberFormat(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
+  const rate = subs >= terms.tier_min ? terms.tier_pct : terms.commission_pct;
+  const monthly = useMemo(() => (subs * price * rate) / 100, [subs, price, rate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,54 +174,199 @@ export default function PartnersPage() {
     const r = await growthApi.createPartner(form);
     setBusy(false);
     if (r.error || !r.data) {
-      const d = errorDetail(r.error) ?? "error";
+      const d = errorDetail(r.error) ?? "stripe_unavailable";
       setError(t.errors[d] ?? d);
       return;
     }
     setRes(r.data);
   };
 
-  const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-sm";
+  const input =
+    "w-full rounded-xl border border-white/[0.12] bg-[rgba(7,11,23,0.6)] px-4 py-3.5 text-[15px] outline-none focus:border-[#22D3EE] focus:shadow-[0_0_0_3px_rgba(34,211,238,0.18)]";
+  const exampleCode = `LUNA-${(form.handle || "ALEX").replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 20) || "ALEX"}`;
 
   return (
-    <div className="mx-auto max-w-xl space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{t.title}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{t.sub}</p>
-      </div>
-      {res ? (
-        <div className="card-weave space-y-3 border p-5 text-sm">
-          <p className="flex items-center gap-2 text-emerald-400"><Check className="h-4 w-4" /> {t.done}</p>
-          <p>{t.code} : <b className="font-mono">{res.code}</b></p>
-          <p className="flex flex-wrap items-center gap-2">
-            {t.share} : <span className="font-mono">{res.share_url}</span>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 text-cyan-300"
-              onClick={() => void navigator.clipboard.writeText(res.share_url).then(() => setCopied(true))}
-            >
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            </button>
-          </p>
-          <p className="text-muted-foreground">{t.terms(res.percent_off, res.commission_pct)}</p>
-          <a href={res.dashboard_url} className="inline-block rounded-md bg-primary px-4 py-2 text-primary-foreground">
-            {t.dash}
-          </a>
+    <div className="mx-auto max-w-[1200px] text-[#F8FAFC]">
+      {/* Hero */}
+      <header className="grid items-center gap-16 px-6 pb-16 pt-12 [grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))]">
+        <div className="flex flex-col gap-7">
+          <div className="inline-flex items-center gap-2.5 self-start rounded-full border border-[rgba(124,58,237,0.3)] bg-[linear-gradient(90deg,rgba(124,58,237,0.16),rgba(34,211,238,0.07))] py-1.5 pl-1.5 pr-3.5">
+            <span className={`${MONO} rounded-full bg-[#22D3EE] px-2.5 py-1 text-[10px] text-[#070B17]`}>{t.badge}</span>
+            <span className="text-[13px] text-[#CBD5E1]">{t.badgeSub}</span>
+          </div>
+          <h1 className="font-[family-name:var(--font-sora)] text-[clamp(38px,5vw,62px)] font-extrabold leading-[1.04] tracking-[-0.035em]">
+            {t.h1a} <span className={TEXT_GRAD}>{t.h1b}</span>
+          </h1>
+          <p className="max-w-[540px] text-lg leading-relaxed text-[#CBD5E1]">{t.lead}</p>
+          <div className="flex flex-wrap gap-3">
+            <a href="#apply" className={`${GRAD} rounded-xl px-7 py-4 text-[15px] font-semibold text-white shadow-[0_0_30px_rgba(124,58,237,0.5)] transition-transform hover:-translate-y-0.5`}>{t.cta}</a>
+            <a href="#earnings" className="rounded-xl border border-white/[0.12] bg-white/[0.04] px-7 py-4 text-[15px] font-semibold hover:border-[rgba(124,58,237,0.5)]">{t.estimate}</a>
+          </div>
+          <div className="flex flex-wrap gap-10 border-t border-white/[0.07] pt-5">
+            {[
+              [`${terms.commission_pct}–${terms.tier_pct} %`, t.rate],
+              [`−${terms.percent_off} %`, t.off],
+              [t.lifetime, t.lifetimeSub],
+            ].map(([v, l]) => (
+              <div key={l} className="flex flex-col gap-1">
+                <span className="font-[family-name:var(--font-sora)] text-[28px] font-bold">{v}</span>
+                <span className="text-[13px] text-[#94A3B8]">{l}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      ) : (
-        <form onSubmit={submit} className="card-weave space-y-3 border p-5">
-          <input className={field} required placeholder={t.name} value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <input className={field} required type="email" placeholder={t.email} value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          <input className={field} required placeholder={t.handle} value={form.handle}
-            onChange={(e) => setForm({ ...form, handle: e.target.value })} />
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <button disabled={busy} className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />} {t.submit}
-          </button>
-        </form>
-      )}
+
+        {/* Example code card — clearly labelled, no invented results. */}
+        <div className="relative rounded-[24px] border border-white/[0.12] bg-[rgba(14,21,48,0.72)] p-8 shadow-[0_24px_64px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+          <div className="mb-6 flex items-center justify-between">
+            <span className={`${MONO} text-[#C084FC]`}>{t.yourCode}</span>
+            <span className={`${MONO} rounded-full border border-white/[0.12] px-2.5 py-1 text-[10px] text-[#94A3B8]`}>{t.example}</span>
+          </div>
+          <div className="flex items-center justify-between rounded-2xl border border-dashed border-[rgba(192,132,252,0.5)] bg-[linear-gradient(135deg,rgba(124,58,237,0.18),rgba(34,211,238,0.08))] px-5 py-5">
+            <span className="font-mono text-2xl tracking-[0.06em]">{exampleCode}</span>
+            <span className="rounded-full bg-[#10B981]/15 px-2.5 py-1 text-xs text-[#10B981]">{t.active}</span>
+          </div>
+          <div className="mt-6 flex h-12 items-end gap-1">
+            {Array.from({ length: 40 }).map((_, i) => (
+              <span
+                key={i}
+                className="w-full rounded-full bg-[linear-gradient(180deg,#22D3EE,#7C3AED)]"
+                style={{ height: `${30 + ((i * 37) % 70)}%`, animation: `wave ${0.9 + (i % 5) * 0.15}s ease-in-out ${i * 0.04}s infinite`, transformOrigin: "bottom" }}
+              />
+            ))}
+          </div>
+          <p className="mt-6 text-sm text-[#94A3B8]">
+            −{terms.percent_off} % · {terms.commission_pct} % · {t.exampleNote(terms.tier_pct, terms.tier_min)}
+          </p>
+          <style>{`@keyframes wave{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}`}</style>
+        </div>
+      </header>
+
+      {/* How it works */}
+      <section id="how" className="px-6 py-16">
+        <div className="mb-12 flex flex-col items-center gap-4 text-center">
+          <span className={`${MONO} text-xs text-[#C084FC]`}>{t.howTag}</span>
+          <h2 className="font-[family-name:var(--font-sora)] text-[clamp(30px,4vw,44px)] font-bold tracking-[-0.025em]">{t.howTitle}</h2>
+        </div>
+        <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))]">
+          {t.steps.map(([title, text], i) => (
+            <div key={title} className={`${CARD} flex flex-col gap-4 p-7 transition hover:-translate-y-0.5 hover:border-[rgba(124,58,237,0.4)] hover:shadow-[0_0_32px_rgba(124,58,237,0.15)]`}>
+              <div className="flex items-center justify-between">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[14px] border border-[rgba(124,58,237,0.3)] bg-[rgba(124,58,237,0.13)] font-[family-name:var(--font-sora)] font-bold text-[#A855F7]">{i + 1}</div>
+                <span className="font-mono text-[13px] text-[#94A3B8]">0{i + 1}</span>
+              </div>
+              <span className="font-[family-name:var(--font-sora)] text-xl font-semibold">{title}</span>
+              <span className="text-[15px] leading-relaxed text-[#94A3B8]">{text}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Earnings */}
+      <section id="earnings" className="px-6 py-16">
+        <div className="grid items-center gap-14 overflow-hidden rounded-[28px] border border-[rgba(124,58,237,0.28)] bg-[linear-gradient(135deg,rgba(124,58,237,0.15),rgba(34,211,238,0.06))] p-[clamp(28px,5vw,64px)] [grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr))]">
+          <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-3.5">
+              <span className={`${MONO} text-xs text-[#22D3EE]`}>{t.earnTag}</span>
+              <h2 className="font-[family-name:var(--font-sora)] text-[clamp(28px,3.6vw,40px)] font-bold tracking-[-0.025em]">{t.earnTitle}</h2>
+              <p className="text-[#94A3B8]">{t.earnSub}</p>
+            </div>
+            <label className="flex flex-col gap-3">
+              <span className="flex justify-between text-sm"><span className="text-[#CBD5E1]">{t.subs}</span><b className="font-[family-name:var(--font-sora)]">{subs}</b></span>
+              <input type="range" min={1} max={200} value={subs} onChange={(e) => setSubs(Number(e.target.value))} className="w-full accent-[#7C3AED]" />
+            </label>
+            <div className="flex flex-col gap-3">
+              <span className="flex justify-between text-sm"><span className="text-[#CBD5E1]">{t.plan}</span><b className="font-[family-name:var(--font-sora)]">{eur(price)}</b></span>
+              <div className="grid grid-cols-4 gap-2">
+                {PLANS.map((p) => (
+                  <button key={p} type="button" onClick={() => setPrice(p)}
+                    className={`rounded-lg border py-2 text-sm ${price === p ? "border-[#22D3EE] bg-[#22D3EE]/10" : "border-white/[0.12]"}`}>
+                    {eur(p)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-6 rounded-[22px] border border-white/[0.12] bg-[rgba(14,21,48,0.72)] p-9 shadow-[0_24px_64px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm text-[#94A3B8]">{t.monthly}</span>
+              <span className={`font-[family-name:var(--font-sora)] text-[clamp(42px,5vw,58px)] font-extrabold ${TEXT_GRAD}`}>{eur(monthly)}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1 rounded-[14px] border border-white/[0.07] bg-white/[0.04] p-4"><span className="text-xs text-[#94A3B8]">{t.yearly}</span><span className="font-[family-name:var(--font-sora)] text-[22px] font-bold">{eur(monthly * 12)}</span></div>
+              <div className="flex flex-col gap-1 rounded-[14px] border border-white/[0.07] bg-white/[0.04] p-4"><span className="text-xs text-[#94A3B8]">{t.rateLbl}</span><span className="font-[family-name:var(--font-sora)] text-[22px] font-bold text-[#22D3EE]">{rate} %</span></div>
+            </div>
+            <span className="text-xs leading-normal text-[#94A3B8]">{t.disclaimer}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Sign-up */}
+      <section id="apply" className="px-6 py-16">
+        <div className={`${CARD} grid overflow-hidden rounded-[28px] shadow-[0_24px_64px_rgba(0,0,0,0.5),0_0_0_1px_rgba(124,58,237,0.2)] [grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))]`}>
+          <div className="flex flex-col justify-center gap-5 bg-[linear-gradient(160deg,rgba(124,58,237,0.32),rgba(34,211,238,0.08))] p-[clamp(32px,5vw,56px)]">
+            <img src="/dograh-mark.png" alt="" className="h-16 w-16 object-contain" />
+            <h2 className="font-[family-name:var(--font-sora)] text-[clamp(28px,3.6vw,40px)] font-bold tracking-[-0.025em]">{t.claim}</h2>
+            <p className="text-[#CBD5E1]">{t.claimSub}</p>
+            <div className="flex flex-col gap-2.5">
+              {t.perks(terms).map((p) => (
+                <div key={p} className="flex items-center gap-2.5 text-sm text-[#CBD5E1]"><Check className="h-[18px] w-[18px] text-[#22D3EE]" /> {p}</div>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col justify-center p-[clamp(32px,5vw,56px)]">
+            {res ? (
+              <div className="flex flex-col gap-4">
+                <span className={`${MONO} text-[#10B981]`}>{t.done}</span>
+                <span className="font-[family-name:var(--font-sora)] text-2xl font-bold">{t.welcome(form.name.split(" ")[0] || "")}</span>
+                <div className="flex items-center justify-between gap-3 rounded-[14px] border border-dashed border-[rgba(192,132,252,0.5)] bg-[linear-gradient(135deg,rgba(124,58,237,0.18),rgba(34,211,238,0.08))] px-5 py-4">
+                  <span className="font-mono text-2xl tracking-[0.06em]">{res.code}</span>
+                  <button type="button" onClick={() => void navigator.clipboard.writeText(res.share_url).then(() => setCopied(true))}
+                    className="inline-flex items-center gap-1.5 rounded-[10px] bg-[#7C3AED] px-3.5 py-2 text-[13px] font-semibold text-white">
+                    {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied ? t.copied : t.copy}
+                  </button>
+                </div>
+                <p className="break-all font-mono text-xs text-[#94A3B8]">{res.share_url}</p>
+                <p className="text-sm text-[#94A3B8]">{t.sent(form.email)}</p>
+                <a href={res.dashboard_url} className={`${GRAD} self-start rounded-xl px-5 py-3 text-sm font-semibold text-white`}>{t.dash}</a>
+              </div>
+            ) : (
+              <form onSubmit={submit} className="flex flex-col gap-4">
+                <label className="flex flex-col gap-2 text-sm text-[#CBD5E1]">{t.name}
+                  <input className={input} required minLength={2} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Alex Morgan" />
+                </label>
+                <label className="flex flex-col gap-2 text-sm text-[#CBD5E1]">{t.email}
+                  <input className={input} required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="alex@example.com" />
+                </label>
+                <label className="flex flex-col gap-2 text-sm text-[#CBD5E1]">{t.handle} <span className="text-xs text-[#94A3B8]">{t.handleHint}</span>
+                  <input className={input} required minLength={2} value={form.handle} onChange={(e) => setForm({ ...form, handle: e.target.value })} placeholder="@alexmorgan" />
+                </label>
+                {error && <div className="rounded-[10px] border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.08)] px-3.5 py-2.5 text-sm text-[#EF4444]">{error}</div>}
+                <button disabled={busy} className={`${GRAD} mt-1.5 inline-flex items-center justify-center gap-2 rounded-xl py-4 text-[15px] font-semibold text-white shadow-[0_0_28px_rgba(124,58,237,0.5)] active:scale-[0.97]`}>
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />} {t.submit}
+                </button>
+                <span className="text-center text-xs text-[#94A3B8]">{t.payouts}</span>
+              </form>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="mx-auto max-w-[840px] px-6 pb-28 pt-16">
+        <h2 className="mb-10 text-center font-[family-name:var(--font-sora)] text-[clamp(30px,4vw,42px)] font-bold tracking-[-0.025em]">{t.faqTitle}</h2>
+        <div className="flex flex-col gap-3">
+          {t.faqs(terms).map(([q, a], i) => (
+            <div key={q} className={`${CARD} rounded-2xl ${open === i ? "border-[rgba(124,58,237,0.4)]" : ""}`}>
+              <button type="button" onClick={() => setOpen(open === i ? null : i)}
+                className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left font-[family-name:var(--font-sora)] font-semibold">
+                <span>{q}</span><span className={`text-xl transition ${open === i ? "rotate-45 text-[#22D3EE]" : ""}`}>+</span>
+              </button>
+              {open === i && <p className="px-6 pb-5 text-[15px] leading-relaxed text-[#94A3B8]">{a}</p>}
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
