@@ -16,6 +16,7 @@ from api.constants import STRIPE_TRIAL_DAYS, STRIPE_TRIAL_MINUTE_CAP, UI_APP_URL
 from api.db import db_client
 from api.db.models import UserModel
 from api.services.auth.depends import get_user_with_selected_organization
+from api.services.billing import growth
 from api.services.billing import (
     create_checkout_session,
     create_portal_session,
@@ -36,6 +37,8 @@ class CheckoutRequest(BaseModel):
     plan_id: str
     # App language ("fr", "zh", …): Checkout is shown in it.
     locale: str | None = None
+    # Influencer code the visitor arrived with (LUNA-…), if any.
+    partner_code: str | None = None
 
 
 class PortalRequest(BaseModel):
@@ -129,6 +132,34 @@ async def get_subscription_status(
     )
 
 
+async def _offer_for_checkout(
+    partner_code: str | None,
+) -> tuple[str | None, bool, str | None]:
+    """Coupon, founder flag and partner attribution for one checkout.
+
+    The customer gets the better of the founders wave and the partner discount;
+    the partner is credited either way. Never blocks a checkout: on any Stripe
+    hiccup the visitor simply pays list price.
+    """
+    try:
+        state = await growth.current_founder_state()
+        percent = state.percent_off if state.open else 0
+        partner = None
+        if partner_code:
+            code = growth.CODE_PREFIX + growth.normalize_handle(
+                partner_code.upper().removeprefix(growth.CODE_PREFIX)
+            )
+            promo = await growth.find_promotion_code(code)
+            if promo and promo.get("active"):
+                partner = code
+                percent = max(percent, growth.PARTNER_PERCENT_OFF)
+        coupon = await growth.ensure_coupon(percent) if percent > 0 else None
+        return coupon, state.open, partner
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Offer lookup failed, list price used: {}", type(e).__name__)
+        return None, False, None
+
+
 @router.post("/checkout-session", response_model=CheckoutResponse)
 async def start_checkout(
     payload: CheckoutRequest,
@@ -160,6 +191,8 @@ async def start_checkout(
         else 0
     )
 
+    coupon, founder, partner = await _offer_for_checkout(payload.partner_code)
+
     base = UI_APP_URL.rstrip("/")
     try:
         url = await create_checkout_session(
@@ -171,6 +204,9 @@ async def start_checkout(
             existing_customer_id=billing.stripe_customer_id if billing else None,
             trial_days=trial_days,
             locale=payload.locale,
+            coupon=coupon,
+            founder=founder,
+            partner_code=partner,
         )
     except Exception as e:
         reason = stripe_error_message(e)

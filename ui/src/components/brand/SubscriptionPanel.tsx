@@ -21,6 +21,7 @@ import { useI18n } from "@/i18n";
 import {
   billingApi,
   errorDetail,
+  partnerRef,
   type Plan,
   type PlansResult,
   type SubscriptionStatus,
@@ -29,6 +30,7 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 import { Rail, StatusPill, type StatusTone } from "./index";
+import { FoundersBanner } from "./FoundersBanner";
 import { PlanNotice } from "./PlanNotice";
 
 const LIVE = new Set(["trialing", "active", "past_due"]);
@@ -89,7 +91,7 @@ export function SubscriptionPanel() {
 
   const choose = async (plan: Plan) => {
     setBusy(plan.id);
-    const res = await billingApi.checkout(plan.id, locale);
+    const res = await billingApi.checkout(plan.id, locale, partnerRef());
     if (res.error || !res.data) {
       setBusy(null);
       const detail = errorDetail(res.error);
@@ -195,6 +197,9 @@ export function SubscriptionPanel() {
           </button>
         )}
       </div>
+
+      {/* Founders offer: real seats and a fixed end date, same for everyone. */}
+      {!live && <FoundersBanner />}
 
       {/* Plans */}
       {catalog.plans.length > 0 && (

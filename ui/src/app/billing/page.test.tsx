@@ -40,6 +40,10 @@ vi.mock("@/lib/ailunapro-api", () => ({
             trial_ends_at: null, current_period_end: null } }),
         checkout: vi.fn(), portal: vi.fn(),
     },
+    growthApi: {
+        founders: vi.fn().mockResolvedValue({ data: { open: false } }),
+    },
+    partnerRef: () => null,
     errorDetail: () => undefined,
 }));
 

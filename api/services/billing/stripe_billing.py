@@ -271,6 +271,9 @@ async def create_checkout_session(
     existing_customer_id: str | None = None,
     trial_days: int = 0,
     locale: str | None = None,
+    coupon: str | None = None,
+    founder: bool = False,
+    partner_code: str | None = None,
 ) -> str:
     """Open a Stripe Checkout session for a catalog plan and return its URL.
 
@@ -297,6 +300,14 @@ async def create_checkout_session(
     }
     if plan.metered_price_id:
         data["line_items[1][price]"] = plan.metered_price_id
+    # Stripe refuses a preset discount together with the promo-code field.
+    if coupon:
+        data.pop("allow_promotion_codes", None)
+        data["discounts[0][coupon]"] = coupon
+    if founder:
+        data["subscription_data[metadata][founder]"] = "1"
+    if partner_code:
+        data["subscription_data[metadata][partner_code]"] = partner_code
     # Stripe's UI in the customer's language, plus the offer explained in that
     # language (product texts in Stripe exist in one language only).
     data["locale"] = stripe_locale(locale)

@@ -24,6 +24,7 @@ import { AppConfigProvider } from "@/context/AppConfigContext";
 import { OnboardingProvider } from "@/context/OnboardingContext";
 import { OrgConfigProvider } from "@/context/OrgConfigContext";
 import { TelephonyConfigWarningsProvider } from "@/context/TelephonyConfigWarningsContext";
+import { RefCapture } from "@/components/brand/RefCapture";
 import { I18nProvider } from "@/i18n";
 import { dictionaryFor } from "@/i18n/dictionaries";
 import { getServerLocale } from "@/i18n/server";
@@ -115,6 +116,8 @@ export default async function RootLayout({
             <I18nProvider initialLocale={locale}>
             {/* BRAND: translates + rebrands the upstream screens. See BRAND.md §6. */}
             <DomLocalizer />
+            {/* OURS: credits influencer codes (?ref=LUNA-…). */}
+            <RefCapture />
             <AuthProvider>
               <AppConfigProvider>
                 <Suspense fallback={<SpinLoader />}>

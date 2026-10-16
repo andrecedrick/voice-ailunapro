@@ -93,10 +93,10 @@ export const billingApi = {
   plans: (): Res<PlansResult> => client.get({ url: "/api/v1/billing/stripe/plans" }) as Res<PlansResult>,
   status: (): Res<SubscriptionStatus> =>
     client.get({ url: "/api/v1/billing/stripe/status" }) as Res<SubscriptionStatus>,
-  checkout: (planId: string, locale?: string): Res<{ url: string }> =>
+  checkout: (planId: string, locale?: string, partnerCode?: string | null): Res<{ url: string }> =>
     client.post({
       url: "/api/v1/billing/stripe/checkout-session",
-      body: { plan_id: planId, locale },
+      body: { plan_id: planId, locale, partner_code: partnerCode || undefined },
       headers: json,
     }) as Res<{ url: string }>,
   portal: (locale?: string): Res<{ url: string }> =>
@@ -106,6 +106,71 @@ export const billingApi = {
       headers: json,
     }) as Res<{ url: string }>,
 };
+
+export type FoundersOffer = {
+  seats_total: number;
+  seats_taken: number;
+  seats_left: number;
+  ends_at: string;
+  open: boolean;
+  wave: number;
+  wave_seats_left: number;
+  percent_off: number;
+  next_percent_off: number | null;
+};
+
+export type PartnerCreated = {
+  code: string;
+  dashboard_url: string;
+  share_url: string;
+  percent_off: number;
+  commission_pct: number;
+};
+
+export type PartnerStats = {
+  code: string;
+  name: string | null;
+  percent_off: number;
+  signups: number;
+  active: number;
+  mrr_cents: number;
+  commission_pct: number;
+  commission_cents: number;
+};
+
+/** Founders offer + influencer programme. OURS — see api/services/billing/growth.py. */
+export const growthApi = {
+  founders: (): Res<FoundersOffer> =>
+    client.get({ url: "/api/v1/ailunapro/founders" }) as Res<FoundersOffer>,
+  createPartner: (body: { name: string; email: string; handle: string }): Res<PartnerCreated> =>
+    client.post({ url: "/api/v1/ailunapro/partners", body, headers: json }) as Res<PartnerCreated>,
+  partnerStats: (code: string, token: string): Res<PartnerStats> =>
+    client.get({
+      url: `/api/v1/ailunapro/partners/${encodeURIComponent(code)}/stats`,
+      query: { token },
+    }) as Res<PartnerStats>,
+};
+
+const REF_KEY = "al_partner_ref";
+
+/** Remember an influencer code from ?ref= for 30 days (per browser). */
+export function rememberPartnerRef(code: string | null) {
+  if (!code || !/^LUNA-[A-Z0-9]{2,20}$/i.test(code)) return;
+  try {
+    localStorage.setItem(REF_KEY, JSON.stringify({ code: code.toUpperCase(), at: Date.now() }));
+  } catch {}
+}
+
+export function partnerRef(): string | null {
+  try {
+    const raw = localStorage.getItem(REF_KEY);
+    if (!raw) return null;
+    const { code, at } = JSON.parse(raw);
+    return Date.now() - at < 30 * 86400_000 ? code : null;
+  } catch {
+    return null;
+  }
+}
 
 export type LeadKind = "enterprise" | "hire_expert" | "onboarding";
 export type LeadReply = { ok: boolean; show_calendar?: boolean; cal_link?: string | null };
