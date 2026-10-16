@@ -102,7 +102,17 @@ export function LoginForm({ signupEnabled }: { signupEnabled: boolean }) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">{a.password}</Label>
+          {/* BRAND: a customer who cannot sign in and has no way back writes to
+              support or churns. See BRAND.md. */}
+          <div className="flex items-baseline justify-between gap-3">
+            <Label htmlFor="password">{a.password}</Label>
+            <Link
+              href="/auth/forgot"
+              className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              {a.forgotLink}
+            </Link>
+          </div>
           <Input
             id="password"
             type="password"

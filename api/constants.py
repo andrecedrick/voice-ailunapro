@@ -110,6 +110,9 @@ SMTP_USERNAME = os.getenv("SMTP_USERNAME") or None
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD") or None
 SMTP_FROM = os.getenv("SMTP_FROM", "Voice AiLunaPro <service@ailunapro.com>")
 EMAIL_VERIFICATION_TTL_HOURS = int(os.getenv("EMAIL_VERIFICATION_TTL_HOURS", "48"))
+# A reset link is a password in the inbox: short-lived, and single-use because
+# the token is signed against the current password hash (see password_reset.py).
+PASSWORD_RESET_TTL_MINUTES = int(os.getenv("PASSWORD_RESET_TTL_MINUTES", "45"))
 
 # Cloudflare Turnstile. Both keys set = a challenge is required at sign-up.
 TURNSTILE_SITE_KEY = os.getenv("TURNSTILE_SITE_KEY") or None

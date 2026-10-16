@@ -23,6 +23,8 @@ export type SignupConfig = {
   signup_enabled: boolean;
   verification_required: boolean;
   turnstile_site_key: string | null;
+  /** False when outgoing mail is off: the sign-in page then hides the link. */
+  password_reset_enabled?: boolean;
 };
 
 export type SignupResult = {
@@ -83,8 +85,20 @@ export const authApi = {
     client.get({ url: "/api/v1/auth/signup-config" }) as Res<SignupConfig>,
   signup: (body: SignupPayload): Res<SignupResult> =>
     client.post({ url: "/api/v1/auth/signup", body, headers: json }) as Res<SignupResult>,
-  verifyEmail: (token: string): Res<AuthSession> =>
-    client.post({ url: "/api/v1/auth/verify-email", body: { token }, headers: json }) as Res<AuthSession>,
+  verifyEmail: (token: string, locale?: string): Res<AuthSession> =>
+    client.post({ url: "/api/v1/auth/verify-email", body: { token, locale }, headers: json }) as Res<AuthSession>,
+  forgotPassword: (email: string, locale?: string): Res<{ sent: boolean }> =>
+    client.post({
+      url: "/api/v1/auth/password/forgot",
+      body: { email, locale },
+      headers: json,
+    }) as Res<{ sent: boolean }>,
+  resetPassword: (token: string, password: string, locale?: string): Res<AuthSession> =>
+    client.post({
+      url: "/api/v1/auth/password/reset",
+      body: { token, password, locale },
+      headers: json,
+    }) as Res<AuthSession>,
   resendVerification: (email: string, locale?: string): Res<{ sent: boolean }> =>
     client.post({
       url: "/api/v1/auth/resend-verification",

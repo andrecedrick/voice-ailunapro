@@ -19,7 +19,7 @@ import { authApi, startSession } from "@/lib/ailunapro-api";
 
 function VerifyInner() {
   const params = useSearchParams();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const a = t.auth;
   const [state, setState] = useState<"working" | "ok" | "failed">("working");
   const ran = useRef(false);
@@ -33,7 +33,7 @@ function VerifyInner() {
       return;
     }
     (async () => {
-      const res = await authApi.verifyEmail(token);
+      const res = await authApi.verifyEmail(token, locale);
       if (res.error || !res.data) {
         setState("failed");
         return;
@@ -42,7 +42,7 @@ function VerifyInner() {
       await startSession(res.data);
       window.location.href = "/after-sign-in";
     })();
-  }, [params]);
+  }, [params, locale]);
 
   return (
     <div className="space-y-4 text-center">

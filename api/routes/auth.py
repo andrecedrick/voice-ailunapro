@@ -7,18 +7,29 @@ from api.db.models import UserModel
 from api.enums import PostHogEvent
 from api.schemas.auth import (
     AuthResponse,
+    ForgotPasswordRequest,
     LoginRequest,
     ResendVerificationRequest,
+    ResetPasswordRequest,
     SignupConfigResponse,
     SignupRequest,
     SignupResponse,
     UserResponse,
     VerifyEmailRequest,
 )
+from api.services.auth.depends import get_user, require_local_auth
 from api.services.auth.email_verification import (
     read_verification_token,
     send_verification_email,
+    send_welcome_email,
     verification_required,
+)
+from api.services.auth.password_reset import (
+    read_reset_token,
+    reset_available,
+    send_password_changed_email,
+    send_reset_email,
+    token_matches,
 )
 from api.services.auth.signup_guard import (
     enforce_rate_limit,
@@ -27,7 +38,6 @@ from api.services.auth.signup_guard import (
     turnstile_enabled,
     verify_turnstile,
 )
-from api.services.auth.depends import get_user, require_local_auth
 from api.services.organization_bootstrap import ensure_organization_bootstrapped
 from api.services.posthog_client import capture_event
 from api.utils.auth import create_jwt_token, hash_password, verify_password
@@ -49,6 +59,7 @@ async def signup_config():
         signup_enabled=ENABLE_SIGNUP,
         verification_required=verification_required(),
         turnstile_site_key=TURNSTILE_SITE_KEY if turnstile_enabled() else None,
+        password_reset_enabled=reset_available(),
     )
 
 
@@ -204,7 +215,10 @@ async def verify_email(request: VerifyEmailRequest):
     if user is None or user.id != user_id:
         raise HTTPException(status_code=400, detail="invalid_or_expired_link")
 
+    first_time = user.email_verified_at is None
     await db_client.mark_user_email_verified(user.id)
+    if first_time:
+        await send_welcome_email(email=user.email, locale=request.locale)
 
     return AuthResponse(
         token=create_jwt_token(user.id, user.email),
@@ -235,6 +249,71 @@ async def resend_verification(request: ResendVerificationRequest, http_request: 
                 user_id=user.id, email=user.email, locale=request.locale
             )
     return {"sent": True}
+
+
+@router.post(
+    "/password/forgot",
+    dependencies=[Depends(require_local_auth)],
+)
+async def forgot_password(request: ForgotPasswordRequest, http_request: Request):
+    """Voice AiLunaPro: email a single-use link to set a new password.
+
+    Always answers {"sent": true}. Saying "no such account" here would turn
+    this endpoint into a way of checking which addresses are customers, and
+    the sender cannot tell the difference anyway.
+    """
+    await enforce_rate_limit(http_request, "signup")
+    if reset_available():
+        user = await db_client.get_user_by_email(request.email)
+        # Accounts created through an identity provider have no password of
+        # ours to reset; sending them a link would only confuse them.
+        if user is not None and user.password_hash:
+            await send_reset_email(
+                user_id=user.id,
+                email=user.email,
+                password_hash=user.password_hash,
+                locale=request.locale,
+            )
+    return {"sent": True}
+
+
+@router.post(
+    "/password/reset",
+    response_model=AuthResponse,
+    dependencies=[Depends(require_local_auth)],
+)
+async def reset_password(request: ResetPasswordRequest, http_request: Request):
+    """Voice AiLunaPro: redeem the emailed link and sign the user straight in."""
+    await enforce_rate_limit(http_request, "signup")
+    claims = read_reset_token(request.token)
+    if claims is None:
+        raise HTTPException(status_code=400, detail="invalid_or_expired_link")
+    user_id, email, fingerprint = claims
+
+    user = await db_client.get_user_by_email(email)
+    if user is None or user.id != user_id or not user.password_hash:
+        raise HTTPException(status_code=400, detail="invalid_or_expired_link")
+    # The fingerprint is of the hash the account had when the link was issued.
+    # Once the password changes, every earlier link stops working - which is
+    # what makes this single-use without a table of spent tokens.
+    if not token_matches(fingerprint, user.password_hash):
+        raise HTTPException(status_code=400, detail="invalid_or_expired_link")
+
+    await db_client.update_user_password(user.id, hash_password(request.password))
+    # Reaching the link proves control of the inbox, so an address still
+    # waiting on confirmation is confirmed by the same act.
+    await db_client.mark_user_email_verified(user.id)
+    await send_password_changed_email(email=user.email, locale=request.locale)
+
+    return AuthResponse(
+        token=create_jwt_token(user.id, user.email),
+        user=UserResponse(
+            id=user.id,
+            email=user.email,
+            organization_id=user.selected_organization_id,
+            provider_id=user.provider_id,
+        ),
+    )
 
 
 @router.get("/me", response_model=UserResponse)

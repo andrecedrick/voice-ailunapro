@@ -150,6 +150,20 @@ class UserClient(BaseDBClient):
             )
             return result.scalars().first()
 
+    async def update_user_password(self, user_id: int, password_hash: str) -> None:
+        """Voice AiLunaPro: store a new password hash.
+
+        Every reset link ever issued for this account is signed against the old
+        hash, so writing a new one invalidates all of them at once.
+        """
+        async with self.async_session() as session:
+            await session.execute(
+                update(UserModel)
+                .where(UserModel.id == user_id)
+                .values(password_hash=password_hash)
+            )
+            await session.commit()
+
     async def mark_user_email_verified(self, user_id: int) -> None:
         """Voice AiLunaPro: record that the user confirmed their address.
 
