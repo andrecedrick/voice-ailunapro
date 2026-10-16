@@ -183,7 +183,7 @@ export const growthApi = {
     client.get({ url: "/api/v1/ailunapro/founders" }) as Res<FoundersOffer>,
   terms: (): Res<PartnerTerms> =>
     client.get({ url: "/api/v1/ailunapro/partners/terms" }) as Res<PartnerTerms>,
-  createPartner: (body: { name: string; email: string; handle: string }): Res<PartnerCreated> =>
+  createPartner: (body: { name: string; email: string; handle: string; locale?: string }): Res<PartnerCreated> =>
     client.post({ url: "/api/v1/ailunapro/partners", body, headers: json }) as Res<PartnerCreated>,
   requestPayout: (code: string, token: string): Res<{ ok: boolean; amount_cents: number }> =>
     client.post({

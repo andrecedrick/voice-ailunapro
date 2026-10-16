@@ -11,6 +11,7 @@ from api.routes.ailunapro_leads import LEADS_NOTIFY_EMAIL
 from api.services.auth.signup_guard import enforce_rate_limit
 from api.services.billing import growth, is_enabled
 from api.services.email import mailer
+from api.services.email.messages import PARTNER, build
 
 router = APIRouter(prefix="/ailunapro", tags=["ailunapro"])
 
@@ -37,6 +38,8 @@ class PartnerIn(BaseModel):
     name: str = Field(min_length=2, max_length=80)
     email: EmailStr
     handle: str = Field(min_length=2, max_length=40)
+    # Language of the welcome email; falls back to English when unknown.
+    locale: str | None = None
 
 
 class PartnerOut(BaseModel):
@@ -82,19 +85,25 @@ async def create_partner(payload: PartnerIn, request: Request) -> PartnerOut:
     code = promo["code"]
     dashboard, share = _links(code)
     if mailer.is_configured():
+        terms = growth.programme_terms()
+        # The partner reads this email once and acts on it for months, so it
+        # carries the whole procedure rather than three bare links.
+        subject, text, body = build(
+            PARTNER,
+            locale=payload.locale,
+            url=dashboard,
+            facts=[
+                ("Code", code),
+                ("Lien / Link", share),
+            ],
+            off=terms["percent_off"],
+            first=terms["first_pct"],
+            rec=terms["recurring_pct"],
+            months=terms["months"],
+        )
         try:
             await mailer.send_email(
-                to=str(payload.email),
-                subject=f"Voice AiLunaPro — votre code partenaire {code}",
-                text=(
-                    f"Code : {code}\nLien à partager : {share}\n"
-                    f"Votre tableau de bord : {dashboard}\n"
-                ),
-                html=(
-                    f"<p>Code : <b>{html.escape(code)}</b></p>"
-                    f"<p>Lien à partager : <a href='{html.escape(share)}'>{html.escape(share)}</a></p>"
-                    f"<p>Tableau de bord : <a href='{html.escape(dashboard)}'>ouvrir</a></p>"
-                ),
+                to=str(payload.email), subject=subject, text=text, html=body
             )
         except Exception as e:  # noqa: BLE001
             logger.warning("Partner email not sent: {}", type(e).__name__)

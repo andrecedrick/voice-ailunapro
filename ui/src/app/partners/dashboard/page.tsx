@@ -31,6 +31,17 @@ const TXT = {
     com: "Votre commission ce mois-ci",
     terms: (f: number, r: number, m: number) => `${f} % du 1er paiement, puis ${r} % pendant ${m} mois.`,
     noLink: "Ouvrez le lien reçu par e-mail à votre inscription, ou collez votre code et votre jeton ci-dessous.",
+    howTitle: "Comment ça marche",
+    steps: [
+      "Partagez votre lien. Toute personne qui s'inscrit par ce lien vous est créditée automatiquement.",
+      "Elle obtient une remise sur son abonnement — c'est votre argument, pas un service qu'on vous rend.",
+      "Vous êtes payé chaque mois. Cet espace affiche chaque inscription et chaque euro, lus en direct depuis Stripe.",
+    ],
+    lostTitle: "Vous n'avez plus le lien ?",
+    lostBody: "Votre espace s'ouvre depuis le lien personnel envoyé par e-mail à votre inscription (objet : « votre code partenaire »). Retrouvez cet e-mail et cliquez sur le bouton, ou collez ci-dessous le code et le jeton qu'il contient.",
+    badTitle: "Ce lien ne fonctionne pas",
+    badBody: "Le jeton est incomplet ou ne correspond pas au code. Reprenez le lien depuis l'e-mail reçu à votre inscription — en le copiant en entier, il est long.",
+    retry: "Saisir mes identifiants",
     code: "Code (LUNA-…)",
     token: "Jeton du lien",
     open: "Ouvrir mon espace",
@@ -51,6 +62,17 @@ const TXT = {
     com: "Your commission this month",
     terms: (f: number, r: number, m: number) => `${f}% of the first payment, then ${r}% for ${m} months.`,
     noLink: "Open the link emailed at sign-up, or paste your code and token below.",
+    howTitle: "How it works",
+    steps: [
+      "Share your link. Anyone who signs up through it is credited to you automatically.",
+      "They get a discount on their subscription — that is your argument, not a favour to you.",
+      "You get paid monthly. This space shows every sign-up and every euro, read live from Stripe.",
+    ],
+    lostTitle: "Lost your link?",
+    lostBody: "Your space opens from the personal link emailed at sign-up (subject: \"your partner code\"). Find that email and click the button, or paste the code and token it contains below.",
+    badTitle: "This link does not work",
+    badBody: "The token is incomplete or does not match the code. Take the link from your sign-up email again — copy all of it, it is long.",
+    retry: "Enter my credentials",
     code: "Code (LUNA-…)",
     token: "Link token",
     open: "Open my space",
@@ -103,12 +125,35 @@ function Dashboard() {
   const eur = (c: number) => new Intl.NumberFormat(tag, { style: "currency", currency: "EUR" }).format(c / 100);
   const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-sm";
 
-  // No credentials yet: let the partner paste them, or go sign up.
+  // No credentials yet. A partner who lands here is lost, so the page explains
+  // the programme and where the link lives before asking for anything.
   if (!creds) {
     return (
-      <div className="mx-auto max-w-md space-y-4 p-6">
-        <h1 className="text-2xl font-semibold">{t.title}</h1>
-        <p className="text-sm text-muted-foreground">{t.noLink}</p>
+      <div className="mx-auto max-w-xl space-y-5 p-6">
+        <div>
+          <h1 className="text-2xl font-semibold">{t.title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t.noLink}</p>
+        </div>
+
+        <div className="card-weave space-y-3 border p-5">
+          <h2 className="text-sm font-semibold">{t.howTitle}</h2>
+          <ol className="space-y-2.5">
+            {t.steps.map((step, i) => (
+              <li key={step} className="flex gap-3 text-sm text-muted-foreground">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border text-xs font-semibold text-foreground">
+                  {i + 1}
+                </span>
+                <span className="leading-relaxed">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="card-weave space-y-2 border p-5">
+          <h2 className="text-sm font-semibold">{t.lostTitle}</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">{t.lostBody}</p>
+        </div>
+
         <form
           className="card-weave space-y-3 border p-5"
           onSubmit={(e) => {
@@ -131,17 +176,25 @@ function Dashboard() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-md space-y-3 p-6">
-        <p className="text-sm text-red-400">{error}</p>
-        <button
-          className="rounded-md border border-border px-4 py-2 text-sm"
-          onClick={() => {
-            setCreds(null);
-            setError(null);
-          }}
-        >
-          {t.open}
-        </button>
+      <div className="mx-auto max-w-xl space-y-4 p-6">
+        <div className="card-weave space-y-2 border border-red-500/30 bg-red-500/[0.04] p-5">
+          <h1 className="text-lg font-semibold">{t.badTitle}</h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">{t.badBody}</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <button
+            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+            onClick={() => {
+              setCreds(null);
+              setError(null);
+            }}
+          >
+            {t.retry}
+          </button>
+          <a href="/partners" className="rounded-md border border-border px-4 py-2 text-sm">
+            {t.join}
+          </a>
+        </div>
       </div>
     );
   }

@@ -280,7 +280,7 @@ export default function PartnersPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const r = await growthApi.createPartner(form);
+    const r = await growthApi.createPartner({ ...form, locale });
     setBusy(false);
     if (r.error || !r.data) {
       const d = errorDetail(r.error) ?? "stripe_unavailable";

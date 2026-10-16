@@ -388,3 +388,38 @@ def build(
         note=copy.note,
     )
     return copy.subject, text, html
+
+
+# --------------------------------------------------------------------------
+# Partner code created - the email that has to make the whole programme clear
+# --------------------------------------------------------------------------
+PARTNER: dict[str, Copy] = {
+    "en": Copy(
+        "Your Voice AiLunaPro partner code is ready",
+        "Your partner code is ready",
+        (
+            "Here is how it works, in three steps.",
+            "1. Share your link. Anyone who signs up through it is credited to you automatically — they do not have to type anything.",
+            "2. They save money. Your code takes {off}% off their subscription, so it is a real reason to use it rather than a favour to you.",
+            "3. You get paid. {first}% of their first payment, then {rec}% for {months} months. Your dashboard shows every sign-up and every euro in real time, read straight from Stripe.",
+            "Keep this email: the dashboard link below is personal to you and is the only way in.",
+        ),
+        "Open my partner space",
+        "Payouts are requested from your dashboard and paid by hand after review, within 7 business days. Payments less than 30 days old are not eligible yet, because that is the refund window.",
+        "Your code, your link, and how you get paid.",
+    ),
+    "fr": Copy(
+        "Votre code partenaire Voice AiLunaPro est prêt",
+        "Votre code partenaire est prêt",
+        (
+            "Voici comment ça marche, en trois étapes.",
+            "1. Partagez votre lien. Toute personne qui s'inscrit par ce lien vous est créditée automatiquement — elle n'a rien à saisir.",
+            "2. Elle y gagne. Votre code lui donne {off} % de remise sur son abonnement : c'est un vrai argument, pas un service qu'on vous rend.",
+            "3. Vous êtes payé. {first} % de son premier paiement, puis {rec} % pendant {months} mois. Votre tableau de bord affiche chaque inscription et chaque euro en temps réel, lus directement depuis Stripe.",
+            "Conservez cet e-mail : le lien de votre espace ci-dessous vous est personnel et c'est le seul moyen d'y entrer.",
+        ),
+        "Ouvrir mon espace partenaire",
+        "Le paiement se demande depuis votre tableau de bord et se verse à la main après vérification, sous 7 jours ouvrés. Les paiements de moins de 30 jours ne sont pas encore éligibles : c'est le délai de remboursement.",
+        "Votre code, votre lien, et comment vous êtes payé.",
+    ),
+}
