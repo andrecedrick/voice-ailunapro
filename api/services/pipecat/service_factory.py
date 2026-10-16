@@ -19,7 +19,9 @@ from api.errors.failure import (
 from api.services.configuration.options import (
     DEEPGRAM_DEFAULT_BASE_URL,
     DEEPGRAM_FLUX_MODELS,
+    GOOGLE_REALTIME_CONTEXT_COMPRESSION,
     GOOGLE_VERTEX_DEFAULT_LOCATION,
+    google_realtime_compression_trigger_tokens,
 )
 from api.services.configuration.registry import (
     ATLASCLOUD_API_BASE_URL,
@@ -338,6 +340,29 @@ def _deepgram_websocket_url(base_url: str, path: str = "") -> str:
     scheme = {"http": "ws", "https": "wss"}.get(parsed.scheme, parsed.scheme)
     return urlunparse(
         parsed._replace(scheme=scheme, path=parsed.path.rstrip("/") + path)
+    )
+
+
+def _gemini_live_compression():
+    """OURS. Sliding-window context compression for Gemini Live sessions.
+
+    Gemini Live holds the whole call in its context window and closes the
+    session once that window is full, which on a native-audio model happens a
+    few minutes in. The caller is then cut off, or we reconnect and re-seed the
+    history and pay for those tokens again. Compression lets Google summarise
+    the oldest turns instead, so session length stops being a cost ceiling.
+
+    Returns ``None`` when disabled, so the setting is simply not sent.
+    """
+    if not GOOGLE_REALTIME_CONTEXT_COMPRESSION:
+        return None
+    from pipecat.services.google.gemini_live.llm import (
+        ContextWindowCompressionParams,
+    )
+
+    return ContextWindowCompressionParams(
+        enabled=True,
+        trigger_tokens=google_realtime_compression_trigger_tokens(),
     )
 
 
@@ -1562,6 +1587,11 @@ def create_realtime_llm_service(user_config, audio_config: "AudioConfig"):
         }
         if language:
             settings_kwargs["language"] = language
+        # BRAND: keep long calls alive. Without this the Live session is closed
+        # once its context window fills; see options/google.py.
+        compression = _gemini_live_compression()
+        if compression:
+            settings_kwargs["context_window_compression"] = compression
         return DograhGeminiLiveLLMService(
             api_key=api_key,
             settings=DograhGeminiLiveLLMService.Settings(**settings_kwargs),
@@ -1580,6 +1610,9 @@ def create_realtime_llm_service(user_config, audio_config: "AudioConfig"):
         }
         if language:
             settings_kwargs["language"] = language
+        compression = _gemini_live_compression()
+        if compression:
+            settings_kwargs["context_window_compression"] = compression
         return DograhGeminiLiveVertexLLMService(
             credentials=credentials,
             project_id=project_id,

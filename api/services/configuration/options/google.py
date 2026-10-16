@@ -1,3 +1,5 @@
+import os
+
 # Vertex serves generative models from three shapes of endpoint, and the location
 # is what picks between them: a single region (europe-west4), one of the two
 # multi-regions (eu, us), or global. Only the regional and multi-region
@@ -292,3 +294,26 @@ GOOGLE_TTS_LANGUAGES = (
     "ur-IN",
     "vi-VN",
 )
+
+
+# OURS. Gemini Live keeps the whole conversation in the session's context
+# window. Without compression the session is torn down the moment that window
+# fills - around ten minutes of native audio - and the call either drops or has
+# to be re-seeded from scratch, which we pay for twice. With the sliding window
+# enabled Google summarises the oldest turns instead, so a session runs for as
+# long as the caller stays on the line.
+#
+# trigger_tokens is left unset by default: Google then compresses at 80% of
+# whichever window the chosen model has, which stays correct as models change.
+# Set GEMINI_LIVE_COMPRESSION_TRIGGER_TOKENS to compress earlier (cheaper,
+# shorter effective memory) on a model whose window we know.
+GOOGLE_REALTIME_CONTEXT_COMPRESSION = os.getenv(
+    "GEMINI_LIVE_CONTEXT_COMPRESSION", "1"
+).lower() not in ("0", "false", "no", "off")
+
+
+def google_realtime_compression_trigger_tokens() -> int | None:
+    raw = (os.getenv("GEMINI_LIVE_COMPRESSION_TRIGGER_TOKENS") or "").strip()
+    if not raw.isdigit() or int(raw) <= 0:
+        return None
+    return int(raw)
