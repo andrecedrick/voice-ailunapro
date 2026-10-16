@@ -217,19 +217,23 @@ const SHOWCASE = "rounded-[24px] border border-white/[0.12] bg-[#0E1530] text-[#
 
 const TOKENS = `
 .pp{
-  --pp-fg:#0B1020; --pp-muted:#334155; --pp-dim:#5A6B82;
-  --pp-card:#FFFFFF; --pp-line:rgba(11,16,32,.10); --pp-soft:rgba(11,16,32,.035);
-  --pp-field:#FFFFFF; --pp-accent:#6D28D9; --pp-accent2:#0E8FA8;
-  --pp-glow:0 10px 36px rgba(15,23,42,.10);
+  --pp-fg:#0B1024; --pp-muted:#3B4560; --pp-dim:#5B6478;
+  --pp-card:#FFFFFF; --pp-line:rgba(76,29,149,.14); --pp-soft:#F3F1FB;
+  --pp-accent:#6D28D9; --pp-accent2:#0E7490;
+  --pp-panel:linear-gradient(135deg,#F3EEFF,#ECFAFD);
+  --pp-glow:0 24px 60px rgba(76,29,149,.10),0 2px 6px rgba(15,23,42,.04);
 }
 .dark .pp{
   --pp-fg:#F8FAFC; --pp-muted:#CBD5E1; --pp-dim:#94A3B8;
-  --pp-card:#0E1530; --pp-line:rgba(255,255,255,.08); --pp-soft:rgba(255,255,255,.04);
-  --pp-field:rgba(7,11,23,.6); --pp-accent:#A855F7; --pp-accent2:#22D3EE;
+  --pp-card:#0E1530; --pp-line:rgba(255,255,255,.10); --pp-soft:rgba(255,255,255,.04);
+  --pp-accent:#A855F7; --pp-accent2:#22D3EE;
+  --pp-panel:linear-gradient(135deg,rgba(124,58,237,.15),rgba(34,211,238,.06));
   --pp-glow:0 24px 64px rgba(0,0,0,.5);
 }
+/* Theme toggle should read as a cross-fade, not a flash. */
+.pp,.pp *{transition:background-color .35s cubic-bezier(.16,1,.3,1),border-color .35s cubic-bezier(.16,1,.3,1),color .35s cubic-bezier(.16,1,.3,1)}
 @keyframes wave{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
-@media (prefers-reduced-motion:reduce){.pp *{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.pp *{animation:none!important;transition:none!important}}
 `;
 
 function CopyButton({ value, idle, done, className = "" }: { value: string; idle: string; done: string; className?: string }) {
@@ -254,7 +258,7 @@ export default function PartnersPage() {
   const [channel, setChannel] = useState(CHANNELS[0]);
   const [form, setForm] = useState({ name: "", email: "", handle: "" });
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ text: string; raw: string } | null>(null);
   const [res, setRes] = useState<PartnerCreated | null>(null);
   const [open, setOpen] = useState<number | null>(0);
 
@@ -280,9 +284,9 @@ export default function PartnersPage() {
     setBusy(false);
     if (r.error || !r.data) {
       const d = errorDetail(r.error) ?? "stripe_unavailable";
-      // Known codes get a friendly line; anything else (a Stripe reason) is
-      // shown as-is so a failure can be diagnosed from the page.
-      setError(t.errors[d] ?? d);
+      // Visitors read a sentence, never an error code. The raw reason stays on
+      // the element's title so a failure is still diagnosable from the page.
+      setError({ text: t.errors[d] ?? t.errors.stripe_unavailable, raw: d });
       return;
     }
     setRes(r.data);
@@ -315,10 +319,10 @@ export default function PartnersPage() {
         />
         <div className="flex flex-col gap-6 lg:gap-7">
           <div className="inline-flex max-w-full flex-wrap items-center gap-2.5 self-start rounded-full border border-[rgba(124,58,237,0.32)] bg-[linear-gradient(90deg,rgba(124,58,237,0.14),rgba(34,211,238,0.07))] py-1.5 pl-1.5 pr-3.5">
-            <span className={`${MONO} rounded-full bg-[#0E1530] px-2.5 py-1 text-[10px] text-[#22D3EE] dark:bg-[#22D3EE] dark:text-[#070B17]`}>{t.badge}</span>
+            <span className={`${MONO} whitespace-nowrap rounded-full bg-[#0E1530] px-2.5 py-1 text-[10px] text-[#22D3EE] dark:bg-[#22D3EE] dark:text-[#070B17]`}>{t.badge}</span>
             <span className="text-[13px] text-[color:var(--pp-muted)]">{t.badgeSub}</span>
           </div>
-          <h1 className="font-[family-name:var(--font-sora)] text-[clamp(34px,5vw,62px)] font-extrabold leading-[1.04] tracking-[-0.035em]">
+          <h1 className="font-[family-name:var(--font-sora)] text-[clamp(40px,5.4vw,66px)] font-extrabold leading-[1.04] tracking-[-0.035em]">
             {t.h1a} <span className={TEXT_GRAD}>{t.h1b}</span>
           </h1>
           <p className="max-w-[540px] text-[17px] leading-relaxed text-[color:var(--pp-muted)] sm:text-lg">{t.lead}</p>
@@ -377,7 +381,7 @@ export default function PartnersPage() {
       <section id="how" className="px-4 py-14 sm:px-6 lg:py-16">
         <div className="mb-10 flex flex-col items-center gap-3 text-center lg:mb-12">
           <span className={`${MONO} text-xs text-[color:var(--pp-accent)]`}>{t.howTag}</span>
-          <h2 className="font-[family-name:var(--font-sora)] text-[clamp(26px,4vw,44px)] font-bold tracking-[-0.025em]">{t.howTitle}</h2>
+          <h2 className="font-[family-name:var(--font-sora)] text-[clamp(30px,4vw,46px)] font-bold tracking-[-0.025em]">{t.howTitle}</h2>
           <p className="max-w-[520px] text-[15px] text-[color:var(--pp-dim)]">{t.howSub}</p>
         </div>
         <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr))]">
@@ -396,7 +400,7 @@ export default function PartnersPage() {
 
       {/* Earnings */}
       <section id="earnings" className="px-4 py-14 sm:px-6 lg:py-16">
-        <div className="grid items-center gap-10 overflow-hidden rounded-[28px] border border-[rgba(124,58,237,0.28)] bg-[linear-gradient(135deg,rgba(124,58,237,0.12),rgba(34,211,238,0.06))] p-[clamp(22px,5vw,64px)] lg:gap-14 [grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr))]">
+        <div className="grid items-center gap-10 overflow-hidden rounded-[28px] border border-[rgba(124,58,237,0.28)] bg-[image:var(--pp-panel)] p-[clamp(22px,5vw,64px)] lg:gap-14 [grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr))]">
           <div className="flex flex-col gap-7">
             <div className="flex flex-col gap-3">
               <span className={`${MONO} text-xs text-[color:var(--pp-accent2)]`}>{t.earnTag}</span>
@@ -467,7 +471,7 @@ export default function PartnersPage() {
       <section id="toolkit" className="px-4 py-14 sm:px-6 lg:py-16">
         <div className="mb-10 flex flex-col items-center gap-3 text-center lg:mb-12">
           <span className={`${MONO} text-xs text-[color:var(--pp-accent)]`}>{t.toolTag}</span>
-          <h2 className="font-[family-name:var(--font-sora)] text-[clamp(26px,4vw,44px)] font-bold tracking-[-0.025em]">{t.toolTitle}</h2>
+          <h2 className="font-[family-name:var(--font-sora)] text-[clamp(30px,4vw,46px)] font-bold tracking-[-0.025em]">{t.toolTitle}</h2>
           <p className="max-w-[560px] text-[15px] text-[color:var(--pp-dim)]">{t.toolSub}</p>
         </div>
 
@@ -573,7 +577,7 @@ export default function PartnersPage() {
                 <label className="flex flex-col gap-2 text-sm text-[#CBD5E1]">{t.handle} <span className="text-xs text-[#94A3B8]">{t.handleHint}</span>
                   <input className={input} required minLength={2} value={form.handle} onChange={(e) => setForm({ ...form, handle: e.target.value })} placeholder="@alexmorgan" />
                 </label>
-                {error && <div className="rounded-[10px] border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.12)] px-3.5 py-2.5 text-sm text-[#FCA5A5]">{error}</div>}
+                {error && <div title={error.raw} className="rounded-[10px] border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.12)] px-3.5 py-2.5 text-sm text-[#FCA5A5]">{error.text}</div>}
                 <button disabled={busy} className={`${GRAD} mt-1.5 inline-flex items-center justify-center gap-2 rounded-xl py-4 text-[15px] font-semibold text-white shadow-[0_0_28px_rgba(124,58,237,0.5)] active:scale-[0.97] disabled:opacity-60`}>
                   {busy && <Loader2 className="h-4 w-4 animate-spin" />} {t.submit}
                 </button>
@@ -586,7 +590,7 @@ export default function PartnersPage() {
 
       {/* FAQ */}
       <section id="faq" className="mx-auto max-w-[840px] px-4 pb-24 pt-14 sm:px-6 lg:pb-28 lg:pt-16">
-        <h2 className="mb-8 text-center font-[family-name:var(--font-sora)] text-[clamp(26px,4vw,42px)] font-bold tracking-[-0.025em] lg:mb-10">{t.faqTitle}</h2>
+        <h2 className="mb-8 text-center font-[family-name:var(--font-sora)] text-[clamp(30px,4vw,46px)] font-bold tracking-[-0.025em] lg:mb-10">{t.faqTitle}</h2>
         <div className="flex flex-col gap-3">
           {t.faqs(terms).map(([q, a], i) => (
             <div key={q} className={`${CARD} rounded-2xl ${open === i ? "border-[rgba(124,58,237,0.45)]" : ""}`}>

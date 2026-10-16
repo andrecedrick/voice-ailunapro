@@ -49,14 +49,9 @@ export function AuthShell({
           <BrandLogo className="h-7" />
         </div>
 
+        {/* BRAND: wordmark only. The floating mark used to sit here and read as
+            a second, competing logo above the headline. See BRAND.md. */}
         <div className="relative max-w-md space-y-7">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/ailunapro-mark.png"
-            alt=""
-            aria-hidden
-            className="al-float h-28 w-28 select-none drop-shadow-[0_0_40px_rgba(34,211,238,0.35)]"
-          />
           <h1 className="al-gradient-text text-4xl font-semibold leading-[1.1] tracking-tight xl:text-5xl">
             {a.tagline}
           </h1>
