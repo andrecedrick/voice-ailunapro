@@ -171,6 +171,12 @@ export const growthApi = {
     client.get({ url: "/api/v1/ailunapro/partners/terms" }) as Res<PartnerTerms>,
   createPartner: (body: { name: string; email: string; handle: string }): Res<PartnerCreated> =>
     client.post({ url: "/api/v1/ailunapro/partners", body, headers: json }) as Res<PartnerCreated>,
+  requestPayout: (code: string, token: string): Res<{ ok: boolean; amount_cents: number }> =>
+    client.post({
+      url: `/api/v1/ailunapro/partners/${encodeURIComponent(code)}/payout`,
+      query: { token },
+      headers: json,
+    }) as Res<{ ok: boolean; amount_cents: number }>,
   partnerStats: (code: string, token: string): Res<PartnerStats> =>
     client.get({
       url: `/api/v1/ailunapro/partners/${encodeURIComponent(code)}/stats`,
@@ -179,6 +185,25 @@ export const growthApi = {
 };
 
 const REF_KEY = "al_partner_ref";
+const ME_KEY = "al_partner_me";
+
+/** Remember this browser's own partner credentials (from the signed link). */
+export function rememberPartner(code: string, token: string) {
+  try {
+    localStorage.setItem(ME_KEY, JSON.stringify({ code, token }));
+  } catch {}
+}
+
+export function storedPartner(): { code: string; token: string } | null {
+  try {
+    const raw = localStorage.getItem(ME_KEY);
+    if (!raw) return null;
+    const { code, token } = JSON.parse(raw);
+    return code && token ? { code, token } : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Remember an influencer code from ?ref= for 30 days (per browser). */
 export function rememberPartnerRef(code: string | null) {

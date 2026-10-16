@@ -36,6 +36,7 @@ export const de: Dict = {
     billing: "Abrechnung",
     reports: "Berichte",
     partners: "Partner",
+    partnerSpace: "Partnerbereich",
     pricing: "Preise",
     settings: "Einstellungen",
   },

@@ -12,6 +12,7 @@ import {
   Database,
   FileText,
   Gift,
+  LayoutDashboard,
   Home,
   Key,
   type LucideIcon,
@@ -66,6 +67,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { key: "billing", url: "/billing", icon: CircleDollarSign },
       { key: "reports", url: "/reports", icon: FileText },
       { key: "partners", url: "/partners", icon: Gift },
+      { key: "partnerSpace", url: "/partners/dashboard", icon: LayoutDashboard },
     ],
   },
 ];

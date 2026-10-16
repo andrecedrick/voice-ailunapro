@@ -36,6 +36,7 @@ export const ru: Dict = {
     billing: "Оплата",
     reports: "Отчёты",
     partners: "Партнёры",
+    partnerSpace: "Кабинет партнёра",
     pricing: "Тарифы",
     settings: "Настройки",
   },

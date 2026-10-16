@@ -7,6 +7,7 @@ from loguru import logger
 from pydantic import BaseModel, EmailStr, Field
 
 from api.constants import UI_APP_URL
+from api.routes.ailunapro_leads import LEADS_NOTIFY_EMAIL
 from api.services.auth.signup_guard import enforce_rate_limit
 from api.services.billing import growth, is_enabled
 from api.services.email import mailer
@@ -100,6 +101,51 @@ async def create_partner(payload: PartnerIn, request: Request) -> PartnerOut:
     return PartnerOut(
         code=code, dashboard_url=dashboard, share_url=share, **growth.programme_terms()
     )
+
+
+class PayoutRequestOut(BaseModel):
+    ok: bool
+    amount_cents: int
+
+
+@router.post("/partners/{code}/payout", response_model=PayoutRequestOut)
+async def request_payout(code: str, token: str, request: Request) -> PayoutRequestOut:
+    """A partner asks to be paid. Nothing is transferred: this emails us the
+    figures so the payout is checked and sent by hand."""
+    await enforce_rate_limit(request, "lead")
+    code = code.upper()
+    if not growth.check_partner_token(code, token):
+        raise HTTPException(status_code=403, detail="invalid_token")
+    promo = await growth.find_promotion_code(code)
+    if not promo:
+        raise HTTPException(status_code=404, detail="unknown_code")
+    meta = promo.get("metadata") or {}
+    stats = await growth.partner_stats(promo["id"], code)
+    amount = int(stats["commission_cents"])
+    if not mailer.is_configured():
+        raise HTTPException(status_code=503, detail="email_unavailable")
+    lines = [
+        f"Code : {code}",
+        f"Partenaire : {meta.get('name') or '—'} <{meta.get('email') or '—'}>",
+        f"Inscriptions : {stats['signups']}",
+        f"Clients actifs : {stats['active']} (dont {stats['earning']} rémunérés)",
+        f"Revenu mensuel généré : {stats['mrr_cents'] / 100:.2f} EUR",
+        f"Commission demandée : {amount / 100:.2f} EUR",
+        "",
+        "Rien n'a été transféré. Vérifier puis payer manuellement.",
+    ]
+    text = "\n".join(lines)
+    try:
+        await mailer.send_email(
+            to=LEADS_NOTIFY_EMAIL,
+            subject=f"Demande de paiement partenaire {code} — {amount / 100:.2f} EUR",
+            text=text,
+            html="<pre style=\"font:14px/1.5 monospace\">" + html.escape(text) + "</pre>",
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Payout request not emailed: {}", type(e).__name__)
+        raise HTTPException(status_code=424, detail="email_failed")
+    return PayoutRequestOut(ok=True, amount_cents=amount)
 
 
 @router.get("/partners/{code}/stats")

@@ -40,6 +40,7 @@ export const en = {
     billing: "Billing",
     reports: "Reports",
     partners: "Partners",
+    partnerSpace: "Partner space",
     pricing: "Pricing",
     settings: "Settings",
   },

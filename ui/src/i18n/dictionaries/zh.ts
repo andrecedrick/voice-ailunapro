@@ -36,6 +36,7 @@ export const zh: Dict = {
     billing: "账单",
     reports: "报告",
     partners: "合作伙伴",
+    partnerSpace: "合作伙伴中心",
     pricing: "价格",
     settings: "设置",
   },

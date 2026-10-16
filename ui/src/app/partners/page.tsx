@@ -9,7 +9,7 @@ import { Check, Copy, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { useI18n } from "@/i18n";
-import { errorDetail, growthApi, type PartnerCreated } from "@/lib/ailunapro-api";
+import { errorDetail, growthApi, type PartnerCreated, rememberPartner } from "@/lib/ailunapro-api";
 
 type Terms = { percent_off: number; first_pct: number; recurring_pct: number; months: number };
 const DEFAULT_TERMS: Terms = { percent_off: 20, first_pct: 40, recurring_pct: 15, months: 6 };
@@ -190,6 +190,9 @@ export default function PartnersPage() {
       return;
     }
     setRes(r.data);
+    // The dashboard link carries the token; keep it so the sidebar entry works.
+    const token = new URL(r.data.dashboard_url).searchParams.get("token");
+    if (token) rememberPartner(r.data.code, token);
   };
 
   const input =
