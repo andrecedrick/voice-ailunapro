@@ -314,7 +314,8 @@ export default function PartnersPage() {
       <section id="apply" className="px-6 py-16">
         <div className={`${CARD} grid overflow-hidden rounded-[28px] shadow-[0_24px_64px_rgba(0,0,0,0.5),0_0_0_1px_rgba(124,58,237,0.2)] [grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))]`}>
           <div className="flex flex-col justify-center gap-5 bg-[linear-gradient(160deg,rgba(124,58,237,0.32),rgba(34,211,238,0.08))] p-[clamp(32px,5vw,56px)]">
-            <img src="/dograh-mark.png" alt="" className="h-16 w-16 object-contain" />
+            {/* BRAND: wordmark, not the bare mark. See BRAND.md. */}
+            <img src="/dograh-logo-inverse.png" alt="AiLunaPro" className="h-10 w-auto self-start object-contain" />
             <h2 className="font-[family-name:var(--font-sora)] text-[clamp(28px,3.6vw,40px)] font-bold tracking-[-0.025em]">{t.claim}</h2>
             <p className="text-[#CBD5E1]">{t.claimSub}</p>
             <div className="flex flex-col gap-2.5">
