@@ -20,6 +20,8 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any
 
+import httpx
+
 from api.constants import OSS_JWT_SECRET
 
 FOUNDER_SEATS = int(os.getenv("FOUNDER_SEATS", "30"))
@@ -33,6 +35,9 @@ PARTNER_FIRST_PCT = int(os.getenv("PARTNER_FIRST_PCT", "40"))
 PARTNER_RECURRING_PCT = int(os.getenv("PARTNER_RECURRING_PCT", "15"))
 PARTNER_MONTHS = int(os.getenv("PARTNER_MONTHS", "6"))
 CODE_PREFIX = "LUNA-"
+# Bump when a create call shape changes: Stripe caches a failed response for
+# 24 h under its idempotency key, so the retry needs a fresh one.
+_IDEMPOTENCY_SALT = os.getenv("STRIPE_IDEMPOTENCY_SALT", "v2")
 _LIVE = {"trialing", "active", "past_due"}
 _CACHE_SECONDS = 60
 _cache: dict[str, tuple[float, Any]] = {}
@@ -193,17 +198,38 @@ async def create_partner(*, name: str, email: str, handle: str) -> dict:
             raise ValueError("code_taken")
         return existing
     cid = await ensure_coupon(PARTNER_PERCENT_OFF)
-    return await _post(
-        "/v1/promotion_codes",
-        {
-            "coupon": cid,
-            "code": code,
-            "metadata[partner]": "1",
-            "metadata[name]": name[:80],
-            "metadata[email]": email[:120],
-        },
-        idempotency_key=f"partner-{code}",
-    )
+    body = {
+        "code": code,
+        "metadata[partner]": "1",
+        "metadata[name]": name[:80],
+        "metadata[email]": email[:120],
+    }
+    # Recent API versions nest the coupon under `promotion`; older ones take a
+    # flat `coupon`. Try the current shape, fall back once on that one error.
+    # The idempotency key carries a salt: Stripe replays a cached failure for
+    # 24 h, so a key that already failed must never be reused after a fix.
+    try:
+        return await _post(
+            "/v1/promotion_codes",
+            {**body, "promotion[type]": "coupon", "promotion[coupon]": cid},
+            idempotency_key=f"partner-{_IDEMPOTENCY_SALT}-{code}",
+        )
+    except httpx.HTTPStatusError as e:
+        if not _is_unknown_parameter(e, "promotion"):
+            raise
+        return await _post(
+            "/v1/promotion_codes",
+            {**body, "coupon": cid},
+            idempotency_key=f"partner-{_IDEMPOTENCY_SALT}-flat-{code}",
+        )
+
+
+def _is_unknown_parameter(error: httpx.HTTPStatusError, name: str) -> bool:
+    try:
+        body = error.response.json().get("error") or {}
+    except ValueError:
+        return False
+    return body.get("code") == "parameter_unknown" and name in str(body.get("param", ""))
 
 
 def _promo_id(discount: Any) -> str | None:

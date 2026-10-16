@@ -72,8 +72,11 @@ async def create_partner(payload: PartnerIn, request: Request) -> PartnerOut:
     except Exception as e:  # noqa: BLE001
         from api.services.billing import stripe_error_message
 
-        logger.error("Partner creation failed: {}", stripe_error_message(e))
-        raise HTTPException(status_code=424, detail="stripe_unavailable")
+        reason = stripe_error_message(e)
+        logger.error("Partner creation failed: {}", reason)
+        # Same reason the browser gets, so a failure is diagnosable without
+        # server logs. Keys are redacted by stripe_error_message.
+        raise HTTPException(status_code=424, detail=f"Stripe: {reason}")
 
     code = promo["code"]
     dashboard, share = _links(code)

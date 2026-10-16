@@ -33,3 +33,19 @@ def test_commission_window():
     assert growth.months_paid(None) == 0
     assert growth.months_paid(1000, now=1000 + 29 * day) == 0
     assert growth.months_paid(1000, now=1000 + 31 * day) == 1
+
+
+def test_unknown_parameter_detection_drives_the_fallback():
+    import httpx
+
+    req = httpx.Request("POST", "https://api.stripe.com/v1/promotion_codes")
+    unknown = httpx.Response(
+        400, request=req,
+        json={"error": {"code": "parameter_unknown", "param": "promotion"}},
+    )
+    other = httpx.Response(
+        400, request=req, json={"error": {"code": "resource_missing", "param": "coupon"}},
+    )
+    err = lambda r: httpx.HTTPStatusError("x", request=req, response=r)  # noqa: E731
+    assert growth._is_unknown_parameter(err(unknown), "promotion") is True
+    assert growth._is_unknown_parameter(err(other), "promotion") is False

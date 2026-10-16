@@ -184,6 +184,8 @@ export default function PartnersPage() {
     setBusy(false);
     if (r.error || !r.data) {
       const d = errorDetail(r.error) ?? "stripe_unavailable";
+      // Known codes get a friendly line; anything else (a Stripe reason) is
+      // shown as-is so a failure can be diagnosed from the page.
       setError(t.errors[d] ?? d);
       return;
     }
