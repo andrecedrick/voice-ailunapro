@@ -11,6 +11,7 @@ export const en = {
   common: {
     support: "Support",
     language: "Language",
+    currency: "Currency",
     theme: "Toggle light/dark theme",
     menu: "Open menu",
     collapse: "Collapse sidebar",

@@ -27,10 +27,11 @@ FOUNDER_ENDS_AT = os.getenv("FOUNDER_ENDS_AT", "2026-12-31T23:59:00+01:00")
 # "seats:percent" per wave, in order. Percent off the first month.
 FOUNDER_WAVES = os.getenv("FOUNDER_WAVES", "10:30,10:20,10:0")
 PARTNER_PERCENT_OFF = int(os.getenv("PARTNER_PERCENT_OFF", "20"))
-PARTNER_COMMISSION_PCT = int(os.getenv("PARTNER_COMMISSION_PCT", "25"))
-# Higher rate once a partner has this many paying customers at once.
-PARTNER_TIER_PCT = int(os.getenv("PARTNER_TIER_PCT", "30"))
-PARTNER_TIER_MIN = int(os.getenv("PARTNER_TIER_MIN", "10"))
+# A big share of the first payment, a smaller one for a fixed window after.
+# Cheaper per customer than a lifetime rate, and far more attractive upfront.
+PARTNER_FIRST_PCT = int(os.getenv("PARTNER_FIRST_PCT", "40"))
+PARTNER_RECURRING_PCT = int(os.getenv("PARTNER_RECURRING_PCT", "15"))
+PARTNER_MONTHS = int(os.getenv("PARTNER_MONTHS", "6"))
 CODE_PREFIX = "LUNA-"
 _LIVE = {"trialing", "active", "past_due"}
 _CACHE_SECONDS = 60
@@ -216,8 +217,8 @@ async def partner_stats(promotion_code_id: str, code: str) -> dict:
     """Customers who subscribed with this code, and the commission they earn."""
     from api.services.billing.plans import plan_for_price
 
-    signups = live = 0
-    mrr_cents = 0
+    signups = live = earning = 0
+    mrr_cents = commission_cents = 0
     for s in await _subscriptions():
         tagged = (s.get("metadata") or {}).get("partner_code") == code
         typed = any(
@@ -229,37 +230,54 @@ async def partner_stats(promotion_code_id: str, code: str) -> dict:
         if s.get("status") not in _LIVE:
             continue
         live += 1
+        pct = commission_pct_for_month(months_paid(s.get("start_date")))
+        if pct:
+            earning += 1
         for item in (s.get("items") or {}).get("data") or []:
             price = item.get("price") or {}
             if (price.get("recurring") or {}).get("usage_type") == "metered":
                 continue
             if await plan_for_price(price.get("id", "")):
-                mrr_cents += int(price.get("unit_amount") or 0) * int(
+                amount = int(price.get("unit_amount") or 0) * int(
                     item.get("quantity") or 1
                 )
-    pct = commission_pct(live)
+                mrr_cents += amount
+                commission_cents += amount * pct // 100
     return {
         "signups": signups,
         "active": live,
+        "earning": earning,
         "mrr_cents": mrr_cents,
-        "commission_pct": pct,
-        "commission_cents": mrr_cents * pct // 100,
-        "tier_pct": PARTNER_TIER_PCT,
-        "tier_min": PARTNER_TIER_MIN,
+        "commission_cents": commission_cents,
+        "first_pct": PARTNER_FIRST_PCT,
+        "recurring_pct": PARTNER_RECURRING_PCT,
+        "months": PARTNER_MONTHS,
     }
 
 
-def commission_pct(active_customers: int) -> int:
-    """25 % of every payment, 30 % once 10 paying customers are active."""
-    return PARTNER_TIER_PCT if active_customers >= PARTNER_TIER_MIN else PARTNER_COMMISSION_PCT
+def months_paid(start_ts: int | None, now: float | None = None) -> int:
+    """Whole months billed since the subscription started (0 = first month)."""
+    if not start_ts:
+        return 0
+    now = time.time() if now is None else now
+    return max(0, int((now - start_ts) // (30 * 86400)))
+
+
+def commission_pct_for_month(month_index: int) -> int:
+    """Rate for one payment: first month, then the window, then nothing."""
+    if month_index <= 0:
+        return PARTNER_FIRST_PCT
+    if month_index < PARTNER_MONTHS:
+        return PARTNER_RECURRING_PCT
+    return 0
 
 
 def programme_terms() -> dict:
     return {
         "percent_off": PARTNER_PERCENT_OFF,
-        "commission_pct": PARTNER_COMMISSION_PCT,
-        "tier_pct": PARTNER_TIER_PCT,
-        "tier_min": PARTNER_TIER_MIN,
+        "first_pct": PARTNER_FIRST_PCT,
+        "recurring_pct": PARTNER_RECURRING_PCT,
+        "months": PARTNER_MONTHS,
     }
 
 

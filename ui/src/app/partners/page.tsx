@@ -11,49 +11,50 @@ import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/i18n";
 import { errorDetail, growthApi, type PartnerCreated } from "@/lib/ailunapro-api";
 
-type Terms = { percent_off: number; commission_pct: number; tier_pct: number; tier_min: number };
-const DEFAULT_TERMS: Terms = { percent_off: 20, commission_pct: 25, tier_pct: 30, tier_min: 10 };
+type Terms = { percent_off: number; first_pct: number; recurring_pct: number; months: number };
+const DEFAULT_TERMS: Terms = { percent_off: 20, first_pct: 40, recurring_pct: 15, months: 6 };
 const PLANS = [39, 149, 449, 999];
 
 const T = {
   fr: {
     badge: "PROGRAMME PARTENAIRES",
     badgeSub: "Commission récurrente, chaque mois",
-    h1a: "Partagez votre code.",
-    h1b: "Gagnez pendant qu'ils parlent.",
-    lead: "Obtenez votre code LUNA personnel. Votre audience économise sur Voice AiLunaPro, et vous touchez une commission chaque mois tant qu'ils restent abonnés.",
+    h1a: "Un lien. Un code.",
+    h1b: "Des revenus qui tombent chaque mois.",
+    lead: "Recevez votre code LUNA en 30 secondes. Votre audience économise dès le premier mois, et vous encaissez 40 % du premier paiement, puis 15 % pendant 6 mois. Sans plafond, sans minimum.",
     cta: "Obtenir mon code — gratuit",
     estimate: "Estimer mes gains",
-    rate: "Commission mensuelle",
+    rate: "sur le 1er paiement",
     off: "de remise pour votre audience",
-    lifetime: "À vie",
-    lifetimeSub: "Tant qu'ils restent abonnés",
+    lifetime: "6 mois",
+    lifetimeSub: "de commissions par client",
     example: "EXEMPLE",
     yourCode: "VOTRE CODE PARTENAIRE",
     active: "Actif",
-    exampleNote: (tier: number, min: number) => `Passez à ${tier} % dès ${min} clients payants actifs.`,
+    exampleNote: (first: number, rec: number, m: number) => `${first} % sur le 1er paiement, puis ${rec} % pendant ${m} mois.`,
     howTag: "01 — FONCTIONNEMENT",
     howTitle: "De l'inscription au paiement en trois étapes",
     steps: [
-      ["Recevez votre code", "Inscrivez-vous en 30 secondes : votre code LUNA et votre tableau de bord sont créés instantanément."],
-      ["Partagez-le", "Whop, YouTube, TikTok, Instagram, newsletter… Votre audience obtient une remise sur son 1er mois."],
-      ["Encaissez chaque mois", "Chaque abonnement payé avec votre code vous rapporte une commission récurrente, suivie en temps réel."],
+      ["Recevez votre code", "Nom, e-mail, pseudo. Votre code LUNA et votre tableau de bord sont créés instantanément — c'est gratuit."],
+      ["Partagez-le partout", "Whop, YouTube, TikTok, Instagram, newsletter. Votre audience obtient une remise immédiate : un vrai argument, pas une promesse."],
+      ["Encaissez chaque mois", "40 % du premier paiement, puis 15 % pendant 6 mois. Chaque euro est suivi en temps réel dans votre tableau de bord."],
     ],
     earnTag: "02 — GAINS",
-    earnTitle: "Combien pouvez-vous gagner ?",
-    earnSub: "Ajustez selon votre audience.",
+    earnTitle: "Combien ça rapporte, concrètement ?",
+    earnSub: "Ajustez selon votre audience. Les chiffres sont calculés sur nos vraies formules.",
     subs: "Abonnés parrainés",
     plan: "Formule moyenne / mois",
-    monthly: "Commission mensuelle estimée",
-    yearly: "Par an",
-    rateLbl: "Taux appliqué",
-    disclaimer: "Estimation indicative. Commissions versées chaque mois sur les abonnements actifs et payés, après 30 jours.",
-    claim: "Réclamez votre code LUNA",
-    claimSub: "Gratuit. Aucun volume minimum. Votre code est prêt immédiatement.",
+    monthly: "Vos gains sur 6 mois",
+    yearly: "Dont le 1er mois",
+    rateLbl: "Par client",
+    disclaimer: "Estimation indicative, hors remise appliquée au client. Commissions versées chaque mois sur les abonnements actifs et payés, après le délai de remboursement de 30 jours.",
+    claim: "Votre code LUNA vous attend",
+    claimSub: "Gratuit, sans engagement, sans volume minimum. Prêt en 30 secondes.",
     perks: (t: Terms) => [
-      `${t.commission_pct} % de commission récurrente, ${t.tier_pct} % dès ${t.tier_min} clients`,
-      `−${t.percent_off} % sur le 1er mois pour votre audience`,
-      "Tableau de bord en temps réel",
+      `${t.first_pct} % du 1er paiement, puis ${t.recurring_pct} % pendant ${t.months} mois`,
+      `−${t.percent_off} % offerts à votre audience`,
+      "Suivi en temps réel, paiements via Stripe",
+      "Aucun plafond de gains",
     ],
     name: "Nom",
     email: "E-mail",
@@ -69,52 +70,54 @@ const T = {
     dash: "Ouvrir mon tableau de bord",
     faqTitle: "Questions fréquentes",
     faqs: (t: Terms) => [
-      ["Combien vais-je gagner ?", `${t.commission_pct} % de chaque paiement mensuel de vos filleuls, puis ${t.tier_pct} % dès que ${t.tier_min} clients payants sont actifs en même temps — tant qu'ils restent abonnés.`],
-      ["Quand suis-je payé ?", "Chaque mois, pour les abonnements payés depuis plus de 30 jours (délai de remboursement)."],
+      ["Combien vais-je gagner ?", `${t.first_pct} % du premier paiement de chaque filleul, puis ${t.recurring_pct} % de ses paiements suivants pendant ${t.months} mois. Exemple : un client Pro à 149 € vous rapporte environ 160 € au total.`],
+      ["Quand suis-je payé ?", "Chaque mois, pour les paiements encaissés depuis plus de 30 jours — le temps du délai de remboursement."],
       ["Comment mes filleuls sont-ils suivis ?", "Par votre lien ?ref=LUNA-… (mémorisé 30 jours) ou par votre code saisi au paiement. Les deux sont crédités automatiquement."],
       ["Puis-je cumuler avec l'Offre Fondateurs ?", "Votre audience obtient la meilleure des deux remises, et vous êtes crédité dans tous les cas."],
-      ["Y a-t-il un minimum ?", "Non. L'inscription est gratuite, sans volume minimum."],
+      ["Y a-t-il un minimum ?", "Aucun. Pas de volume minimum, pas de plafond, pas d'engagement."],
+      ["Et si mon filleul change de formule ?", "La commission suit le montant réellement payé. S'il passe à une formule supérieure, vous gagnez davantage."],
     ],
     errors: { code_taken: "Ce pseudo est déjà pris.", invalid_handle: "Pseudo invalide.", stripe_unavailable: "Service momentanément indisponible, réessayez dans quelques minutes." } as Record<string, string>,
   },
   en: {
     badge: "PARTNER PROGRAMME",
     badgeSub: "Recurring commission, every month",
-    h1a: "Share your code.",
-    h1b: "Earn while they talk.",
-    lead: "Get your personal LUNA code. Your audience saves on AiLunaPro Voice, and you earn a monthly commission for as long as they stay subscribed.",
+    h1a: "One link. One code.",
+    h1b: "Revenue that lands every month.",
+    lead: "Get your LUNA code in 30 seconds. Your audience saves from month one, and you earn 40% of the first payment, then 15% for 6 months. No cap, no minimum.",
     cta: "Get my code — free",
     estimate: "Estimate earnings",
-    rate: "Monthly commission",
+    rate: "on the first payment",
     off: "off for your audience",
-    lifetime: "Lifetime",
-    lifetimeSub: "As long as they stay",
+    lifetime: "6 months",
+    lifetimeSub: "of commission per customer",
     example: "EXAMPLE",
     yourCode: "YOUR PARTNER CODE",
     active: "Active",
-    exampleNote: (tier: number, min: number) => `Move up to ${tier}% from ${min} active paying customers.`,
+    exampleNote: (first: number, rec: number, m: number) => `${first}% on the first payment, then ${rec}% for ${m} months.`,
     howTag: "01 — HOW IT WORKS",
     howTitle: "From sign-up to payout in three steps",
     steps: [
-      ["Get your code", "Sign up in 30 seconds: your LUNA code and dashboard are created instantly."],
-      ["Share it", "Whop, YouTube, TikTok, Instagram, newsletter… Your audience gets a discount on month one."],
-      ["Get paid monthly", "Every paid subscription with your code earns you a recurring commission, tracked in real time."],
+      ["Get your code", "Name, email, handle. Your LUNA code and dashboard are created instantly — free."],
+      ["Share it anywhere", "Whop, YouTube, TikTok, Instagram, newsletter. Your audience gets a real discount, not a vague promise."],
+      ["Get paid monthly", "40% of the first payment, then 15% for 6 months. Every euro tracked live in your dashboard."],
     ],
     earnTag: "02 — EARNINGS",
-    earnTitle: "How much could you earn?",
-    earnSub: "Move the sliders to match your audience.",
+    earnTitle: "What does it actually pay?",
+    earnSub: "Match it to your audience. Figures use our real plan prices.",
     subs: "Referred subscribers",
     plan: "Average plan / month",
-    monthly: "Estimated monthly commission",
-    yearly: "Per year",
-    rateLbl: "Rate applied",
-    disclaimer: "Indicative estimate. Commissions are paid monthly on active, paid subscriptions after 30 days.",
-    claim: "Claim your LUNA code",
-    claimSub: "Free to join. No minimum volume. Your code is ready instantly.",
+    monthly: "Your earnings over 6 months",
+    yearly: "Of which month one",
+    rateLbl: "Per customer",
+    disclaimer: "Indicative estimate, before the discount applied to the customer. Commissions are paid monthly on active, paid subscriptions, after the 30-day refund window.",
+    claim: "Your LUNA code is waiting",
+    claimSub: "Free, no commitment, no minimum volume. Ready in 30 seconds.",
     perks: (t: Terms) => [
-      `${t.commission_pct}% recurring commission, ${t.tier_pct}% from ${t.tier_min} customers`,
-      `−${t.percent_off}% on month one for your audience`,
-      "Real-time dashboard",
+      `${t.first_pct}% of the first payment, then ${t.recurring_pct}% for ${t.months} months`,
+      `−${t.percent_off}% for your audience`,
+      "Live tracking, payouts via Stripe",
+      "No earnings cap",
     ],
     name: "Name",
     email: "Email",
@@ -130,11 +133,12 @@ const T = {
     dash: "Open my dashboard",
     faqTitle: "Questions, answered",
     faqs: (t: Terms) => [
-      ["How much will I earn?", `${t.commission_pct}% of every monthly payment from your referrals, then ${t.tier_pct}% once ${t.tier_min} paying customers are active at once — for as long as they stay.`],
-      ["When do I get paid?", "Monthly, for subscriptions paid for more than 30 days (refund window)."],
+      ["How much will I earn?", `${t.first_pct}% of each referral's first payment, then ${t.recurring_pct}% of their next payments for ${t.months} months. A Pro customer at €149 is worth roughly €160 in total.`],
+      ["When do I get paid?", "Monthly, for payments collected more than 30 days ago — the refund window."],
       ["How are referrals tracked?", "Through your ?ref=LUNA-… link (remembered 30 days) or your code entered at checkout. Both are credited automatically."],
       ["Does it stack with the Founders offer?", "Your audience gets the better of the two discounts, and you are credited either way."],
-      ["Is there a minimum?", "No. Free to join, no minimum volume."],
+      ["Is there a minimum?", "None. No minimum volume, no cap, no commitment."],
+      ["What if my referral upgrades?", "Commission follows what they actually pay. If they move to a bigger plan, you earn more."],
     ],
     errors: { code_taken: "This handle is already taken.", invalid_handle: "Invalid handle.", stripe_unavailable: "Service temporarily unavailable, please retry in a few minutes." } as Record<string, string>,
   },
@@ -164,8 +168,13 @@ export default function PartnersPage() {
 
   const eur = (v: number) =>
     new Intl.NumberFormat(locale === "fr" ? "fr-FR" : "en-GB", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
-  const rate = subs >= terms.tier_min ? terms.tier_pct : terms.commission_pct;
-  const monthly = useMemo(() => (subs * price * rate) / 100, [subs, price, rate]);
+  // 40 % of the first payment, then 15 % for the rest of the window.
+  const perCustomer = useMemo(
+    () => (price * terms.first_pct) / 100 + (price * terms.recurring_pct * (terms.months - 1)) / 100,
+    [price, terms],
+  );
+  const firstMonth = (subs * price * terms.first_pct) / 100;
+  const total = subs * perCustomer;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,7 +213,7 @@ export default function PartnersPage() {
           </div>
           <div className="flex flex-wrap gap-10 border-t border-white/[0.07] pt-5">
             {[
-              [`${terms.commission_pct}–${terms.tier_pct} %`, t.rate],
+              [`${terms.first_pct} %`, t.rate],
               [`−${terms.percent_off} %`, t.off],
               [t.lifetime, t.lifetimeSub],
             ].map(([v, l]) => (
@@ -236,7 +245,7 @@ export default function PartnersPage() {
             ))}
           </div>
           <p className="mt-6 text-sm text-[#94A3B8]">
-            −{terms.percent_off} % · {terms.commission_pct} % · {t.exampleNote(terms.tier_pct, terms.tier_min)}
+            {t.exampleNote(terms.first_pct, terms.recurring_pct, terms.months)}
           </p>
           <style>{`@keyframes wave{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}`}</style>
         </div>
@@ -290,11 +299,11 @@ export default function PartnersPage() {
           <div className="flex flex-col gap-6 rounded-[22px] border border-white/[0.12] bg-[rgba(14,21,48,0.72)] p-9 shadow-[0_24px_64px_rgba(0,0,0,0.5)] backdrop-blur-xl">
             <div className="flex flex-col gap-1.5">
               <span className="text-sm text-[#94A3B8]">{t.monthly}</span>
-              <span className={`font-[family-name:var(--font-sora)] text-[clamp(42px,5vw,58px)] font-extrabold ${TEXT_GRAD}`}>{eur(monthly)}</span>
+              <span className={`font-[family-name:var(--font-sora)] text-[clamp(42px,5vw,58px)] font-extrabold ${TEXT_GRAD}`}>{eur(total)}</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1 rounded-[14px] border border-white/[0.07] bg-white/[0.04] p-4"><span className="text-xs text-[#94A3B8]">{t.yearly}</span><span className="font-[family-name:var(--font-sora)] text-[22px] font-bold">{eur(monthly * 12)}</span></div>
-              <div className="flex flex-col gap-1 rounded-[14px] border border-white/[0.07] bg-white/[0.04] p-4"><span className="text-xs text-[#94A3B8]">{t.rateLbl}</span><span className="font-[family-name:var(--font-sora)] text-[22px] font-bold text-[#22D3EE]">{rate} %</span></div>
+              <div className="flex flex-col gap-1 rounded-[14px] border border-white/[0.07] bg-white/[0.04] p-4"><span className="text-xs text-[#94A3B8]">{t.yearly}</span><span className="font-[family-name:var(--font-sora)] text-[22px] font-bold">{eur(firstMonth)}</span></div>
+              <div className="flex flex-col gap-1 rounded-[14px] border border-white/[0.07] bg-white/[0.04] p-4"><span className="text-xs text-[#94A3B8]">{t.rateLbl}</span><span className="font-[family-name:var(--font-sora)] text-[22px] font-bold text-[#22D3EE]">{eur(perCustomer)}</span></div>
             </div>
             <span className="text-xs leading-normal text-[#94A3B8]">{t.disclaimer}</span>
           </div>

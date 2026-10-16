@@ -274,6 +274,7 @@ async def create_checkout_session(
     coupon: str | None = None,
     founder: bool = False,
     partner_code: str | None = None,
+    currency: str | None = None,
 ) -> str:
     """Open a Stripe Checkout session for a catalog plan and return its URL.
 
@@ -300,6 +301,10 @@ async def create_checkout_session(
     }
     if plan.metered_price_id:
         data["line_items[1][price]"] = plan.metered_price_id
+    # Only when the plan's prices carry that currency (checked by the caller):
+    # Stripe then charges the configured amount, never a conversion of ours.
+    if currency:
+        data["currency"] = currency.lower()
     # Stripe refuses a preset discount together with the promo-code field.
     if coupon:
         data.pop("allow_promotion_codes", None)

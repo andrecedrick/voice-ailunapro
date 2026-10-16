@@ -117,3 +117,28 @@ def test_checkout_offer_text_follows_app_language():
     assert "1,500" in offer_message(locale="zh", **kw)
     assert offer_message(locale="xx", **kw) is None
     assert stripe_locale("pt") == "pt" and stripe_locale(None) == "auto"
+
+
+def test_currency_follows_stripe_options_never_a_conversion():
+    from api.services.billing.currency import (
+        country_from_headers,
+        currencies_of,
+        pick_currency,
+        price_in,
+    )
+
+    price = {
+        "currency": "eur",
+        "unit_amount": 14900,
+        "currency_options": {"usd": {"unit_amount": 16900}},
+    }
+    assert currencies_of(price) == {"eur", "usd"}
+    assert price_in(price, "usd") == (16900, "usd")
+    assert price_in(price, "gbp") is None  # not configured → never converted
+
+    assert country_from_headers({"cf-ipcountry": "us"}) == "US"
+    assert country_from_headers({"cf-ipcountry": "XX"}) is None
+    avail = {"eur", "usd"}
+    assert pick_currency(requested="usd", country="FR", available=avail, default="eur") == "usd"
+    assert pick_currency(requested=None, country="US", available=avail, default="eur") == "usd"
+    assert pick_currency(requested="gbp", country="GB", available=avail, default="eur") == "eur"

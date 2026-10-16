@@ -30,6 +30,7 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 import { Rail, StatusPill, type StatusTone } from "./index";
+import { storedCurrency } from "./CurrencyMenu";
 import { FoundersBanner } from "./FoundersBanner";
 import { PlanNotice } from "./PlanNotice";
 
@@ -48,7 +49,10 @@ export function SubscriptionPanel() {
   const fetched = useRef(false);
 
   const load = useCallback(async () => {
-    const [plans, sub] = await Promise.all([billingApi.plans(), billingApi.status()]);
+    const [plans, sub] = await Promise.all([
+      billingApi.plans(storedCurrency()),
+      billingApi.status(),
+    ]);
     if (plans.error || sub.error) {
       setFailed(true);
       return null;
@@ -91,7 +95,7 @@ export function SubscriptionPanel() {
 
   const choose = async (plan: Plan) => {
     setBusy(plan.id);
-    const res = await billingApi.checkout(plan.id, locale, partnerRef());
+    const res = await billingApi.checkout(plan.id, locale, partnerRef(), storedCurrency());
     if (res.error || !res.data) {
       setBusy(null);
       const detail = errorDetail(res.error);

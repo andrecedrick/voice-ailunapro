@@ -53,6 +53,10 @@ export type Plan = {
 
 export type PlansResult = {
   billing_enabled: boolean;
+  /** Currency the amounts are quoted in, and the ones Stripe can charge. */
+  currency?: string;
+  currencies?: string[];
+  detected_country?: string | null;
   trial_days: number;
   trial_minutes_cap: number;
   plans: Plan[];
@@ -90,13 +94,22 @@ export const authApi = {
 };
 
 export const billingApi = {
-  plans: (): Res<PlansResult> => client.get({ url: "/api/v1/billing/stripe/plans" }) as Res<PlansResult>,
+  plans: (currency?: string): Res<PlansResult> =>
+    client.get({
+      url: "/api/v1/billing/stripe/plans",
+      query: currency ? { currency } : undefined,
+    }) as Res<PlansResult>,
   status: (): Res<SubscriptionStatus> =>
     client.get({ url: "/api/v1/billing/stripe/status" }) as Res<SubscriptionStatus>,
-  checkout: (planId: string, locale?: string, partnerCode?: string | null): Res<{ url: string }> =>
+  checkout: (
+    planId: string,
+    locale?: string,
+    partnerCode?: string | null,
+    currency?: string,
+  ): Res<{ url: string }> =>
     client.post({
       url: "/api/v1/billing/stripe/checkout-session",
-      body: { plan_id: planId, locale, partner_code: partnerCode || undefined },
+      body: { plan_id: planId, locale, partner_code: partnerCode || undefined, currency },
       headers: json,
     }) as Res<{ url: string }>,
   portal: (locale?: string): Res<{ url: string }> =>
@@ -119,12 +132,21 @@ export type FoundersOffer = {
   next_percent_off: number | null;
 };
 
+export type PartnerTerms = {
+  percent_off: number;
+  first_pct: number;
+  recurring_pct: number;
+  months: number;
+};
+
 export type PartnerCreated = {
   code: string;
   dashboard_url: string;
   share_url: string;
   percent_off: number;
-  commission_pct: number;
+  first_pct: number;
+  recurring_pct: number;
+  months: number;
 };
 
 export type PartnerStats = {
@@ -133,21 +155,20 @@ export type PartnerStats = {
   percent_off: number;
   signups: number;
   active: number;
+  earning: number;
   mrr_cents: number;
-  commission_pct: number;
   commission_cents: number;
-  tier_pct?: number;
-  tier_min?: number;
+  first_pct: number;
+  recurring_pct: number;
+  months: number;
 };
 
 /** Founders offer + influencer programme. OURS — see api/services/billing/growth.py. */
 export const growthApi = {
   founders: (): Res<FoundersOffer> =>
     client.get({ url: "/api/v1/ailunapro/founders" }) as Res<FoundersOffer>,
-  terms: (): Res<{ percent_off: number; commission_pct: number; tier_pct: number; tier_min: number }> =>
-    client.get({ url: "/api/v1/ailunapro/partners/terms" }) as Res<{
-      percent_off: number; commission_pct: number; tier_pct: number; tier_min: number;
-    }>,
+  terms: (): Res<PartnerTerms> =>
+    client.get({ url: "/api/v1/ailunapro/partners/terms" }) as Res<PartnerTerms>,
   createPartner: (body: { name: string; email: string; handle: string }): Res<PartnerCreated> =>
     client.post({ url: "/api/v1/ailunapro/partners", body, headers: json }) as Res<PartnerCreated>,
   partnerStats: (code: string, token: string): Res<PartnerStats> =>

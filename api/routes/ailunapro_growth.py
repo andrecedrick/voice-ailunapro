@@ -43,7 +43,9 @@ class PartnerOut(BaseModel):
     dashboard_url: str
     share_url: str
     percent_off: int
-    commission_pct: int
+    first_pct: int
+    recurring_pct: int
+    months: int
 
 
 def _links(code: str) -> tuple[str, str]:
@@ -93,11 +95,7 @@ async def create_partner(payload: PartnerIn, request: Request) -> PartnerOut:
         except Exception as e:  # noqa: BLE001
             logger.warning("Partner email not sent: {}", type(e).__name__)
     return PartnerOut(
-        code=code,
-        dashboard_url=dashboard,
-        share_url=share,
-        percent_off=growth.PARTNER_PERCENT_OFF,
-        commission_pct=growth.PARTNER_COMMISSION_PCT,
+        code=code, dashboard_url=dashboard, share_url=share, **growth.programme_terms()
     )
 
 

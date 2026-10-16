@@ -24,7 +24,12 @@ def test_partner_token_is_per_code():
     assert growth.normalize_handle("@alice.k!") == "ALICEK"
 
 
-def test_commission_tier():
-    assert growth.commission_pct(0) == 25
-    assert growth.commission_pct(9) == 25
-    assert growth.commission_pct(10) == 30
+def test_commission_window():
+    assert growth.commission_pct_for_month(0) == 40
+    assert growth.commission_pct_for_month(1) == 15
+    assert growth.commission_pct_for_month(5) == 15
+    assert growth.commission_pct_for_month(6) == 0
+    day = 86400
+    assert growth.months_paid(None) == 0
+    assert growth.months_paid(1000, now=1000 + 29 * day) == 0
+    assert growth.months_paid(1000, now=1000 + 31 * day) == 1

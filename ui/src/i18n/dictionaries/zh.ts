@@ -7,6 +7,7 @@ export const zh: Dict = {
   common: {
     support: "支持",
     language: "语言",
+    currency: "货币",
     theme: "切换浅色/深色主题",
     menu: "打开菜单",
     collapse: "收起侧边栏",

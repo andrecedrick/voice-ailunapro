@@ -29,6 +29,7 @@ from typing import Any
 from loguru import logger
 
 from api.constants import STRIPE_PLAN_PRODUCT_PREFIX
+from api.services.billing.currency import currencies_of, price_in, tiers_in
 
 _CACHE_SECONDS = 600
 _cache: tuple[float, list["Plan"]] | None = None
@@ -45,12 +46,23 @@ class Plan:
     overage_per_minute: str | None  # minor units, decimal string ("4.5" = €0.045)
     base_price_id: str
     metered_price_id: str | None
+    # Currencies Stripe can actually charge this plan in (never a conversion).
+    currencies: tuple[str, ...] = ()
+    # currency → (monthly amount, overage per minute) for the others.
+    alt_prices: tuple[tuple[str, int, str | None], ...] = ()
 
-    def public(self) -> dict[str, Any]:
+    def public(self, currency: str | None = None) -> dict[str, Any]:
         """What the browser may see: no price ids needed to choose a plan."""
         data = asdict(self)
         data.pop("base_price_id")
         data.pop("metered_price_id")
+        data["currencies"] = list(self.currencies)
+        alt = {c: (amount, over) for c, amount, over in self.alt_prices}
+        data.pop("alt_prices")
+        code = (currency or "").lower()
+        if code and code in alt:
+            data["monthly_amount"], data["overage_per_minute"] = alt[code]
+            data["currency"] = code
         return data
 
 
@@ -85,7 +97,10 @@ async def _fetch() -> list[Plan]:
     from api.services.billing.stripe_billing import _get
 
     products = await _get("/v1/products?active=true&limit=100")
-    prices = await _get("/v1/prices?active=true&limit=100&expand[]=data.tiers")
+    prices = await _get(
+        "/v1/prices?active=true&limit=100"
+        "&expand[]=data.tiers&expand[]=data.currency_options"
+    )
 
     by_product: dict[str, list[dict[str, Any]]] = {}
     for price in prices.get("data") or []:
@@ -125,6 +140,23 @@ async def _fetch() -> list[Plan]:
             logger.warning("Stripe plan {} has no monthly price; skipped", name)
             continue
         included, overage = _included_and_overage(metered) if metered else (0, None)
+        # Only currencies BOTH prices can be charged in, so a checkout never
+        # mixes a dollar subscription with a euro overage line.
+        shared = currencies_of(base)
+        if metered:
+            shared &= currencies_of(metered)
+        base_currency = (base.get("currency") or "eur").lower()
+        shared.add(base_currency)
+        alt: list[tuple[str, int, str | None]] = []
+        for code in sorted(shared - {base_currency}):
+            priced = price_in(base, code)
+            if not priced:
+                continue
+            over = overage
+            if metered:
+                tiers = tiers_in(metered, code)
+                over = _included_and_overage({"tiers": tiers})[1] if tiers else None
+            alt.append((code, priced[0], over))
         plans.append(
             Plan(
                 id=product["id"],
@@ -136,6 +168,8 @@ async def _fetch() -> list[Plan]:
                 overage_per_minute=overage,
                 base_price_id=base["id"],
                 metered_price_id=metered["id"] if metered else None,
+                currencies=tuple(sorted(shared)),
+                alt_prices=tuple(alt),
             )
         )
 

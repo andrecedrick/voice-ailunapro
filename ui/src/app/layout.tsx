@@ -24,6 +24,7 @@ import { AppConfigProvider } from "@/context/AppConfigContext";
 import { OnboardingProvider } from "@/context/OnboardingContext";
 import { OrgConfigProvider } from "@/context/OrgConfigContext";
 import { TelephonyConfigWarningsProvider } from "@/context/TelephonyConfigWarningsContext";
+import { CurrencyProvider } from "@/components/brand/CurrencyMenu";
 import { RefCapture } from "@/components/brand/RefCapture";
 import { I18nProvider } from "@/i18n";
 import { dictionaryFor } from "@/i18n/dictionaries";
@@ -118,6 +119,7 @@ export default async function RootLayout({
             <DomLocalizer />
             {/* OURS: credits influencer codes (?ref=LUNA-…). */}
             <RefCapture />
+            <CurrencyProvider>
             <AuthProvider>
               <AppConfigProvider>
                 <Suspense fallback={<SpinLoader />}>
@@ -137,6 +139,7 @@ export default async function RootLayout({
                 </Suspense>
               </AppConfigProvider>
             </AuthProvider>
+            </CurrencyProvider>
             </I18nProvider>
           </SentryErrorBoundary>
         </ThemeProvider>

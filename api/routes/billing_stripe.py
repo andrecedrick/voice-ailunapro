@@ -17,6 +17,7 @@ from api.db import db_client
 from api.db.models import UserModel
 from api.services.auth.depends import get_user_with_selected_organization
 from api.services.billing import growth
+from api.services.billing.currency import country_from_headers, pick_currency
 from api.services.billing import (
     create_checkout_session,
     create_portal_session,
@@ -39,6 +40,8 @@ class CheckoutRequest(BaseModel):
     locale: str | None = None
     # Influencer code the visitor arrived with (LUNA-…), if any.
     partner_code: str | None = None
+    # Currency to charge in; ignored unless the plan is priced in it.
+    currency: str | None = None
 
 
 class PortalRequest(BaseModel):
@@ -53,10 +56,16 @@ class PlanResponse(BaseModel):
     interval: str
     included_minutes: int
     overage_per_minute: str | None = None
+    # Currencies Stripe can charge this plan in.
+    currencies: list[str] = []
 
 
 class PlansResponse(BaseModel):
     billing_enabled: bool
+    # Currency the amounts below are quoted in, and the ones on offer.
+    currency: str = "eur"
+    currencies: list[str] = []
+    detected_country: str | None = None
     trial_days: int
     trial_minutes_cap: int
     plans: list[PlanResponse]
@@ -86,8 +95,12 @@ def _require_billing() -> None:
 
 
 @router.get("/plans", response_model=PlansResponse)
-async def get_plans() -> PlansResponse:
-    """The plans on sale, read live from Stripe. Public: the pricing page uses it."""
+async def get_plans(request: Request, currency: str | None = None) -> PlansResponse:
+    """The plans on sale, read live from Stripe. Public: the pricing page uses it.
+
+    Amounts are quoted in the visitor's currency when Stripe is configured for
+    it (price ``currency_options``) — never converted by us.
+    """
     if not is_enabled():
         return PlansResponse(
             billing_enabled=False,
@@ -96,11 +109,21 @@ async def get_plans() -> PlansResponse:
             plans=[],
         )
     plans = await list_plans()
+    country = country_from_headers(request.headers)
+    # Only currencies every plan can be charged in, so the page never mixes.
+    shared: set[str] = set.intersection(*(set(p.currencies) for p in plans)) if plans else set()
+    default = plans[0].currency if plans else "eur"
+    chosen = pick_currency(
+        requested=currency, country=country, available=shared, default=default
+    )
     return PlansResponse(
         billing_enabled=True,
+        currency=chosen,
+        currencies=sorted(shared),
+        detected_country=country,
         trial_days=STRIPE_TRIAL_DAYS,
         trial_minutes_cap=STRIPE_TRIAL_MINUTE_CAP,
-        plans=[PlanResponse(**p.public()) for p in plans],
+        plans=[PlanResponse(**p.public(chosen)) for p in plans],
     )
 
 
@@ -163,6 +186,7 @@ async def _offer_for_checkout(
 @router.post("/checkout-session", response_model=CheckoutResponse)
 async def start_checkout(
     payload: CheckoutRequest,
+    request: Request,
     user: UserModel = Depends(get_user_with_selected_organization),
 ) -> CheckoutResponse:
     """Open Stripe Checkout for the selected plan."""
@@ -192,6 +216,12 @@ async def start_checkout(
     )
 
     coupon, founder, partner = await _offer_for_checkout(payload.partner_code)
+    currency = pick_currency(
+        requested=payload.currency,
+        country=country_from_headers(request.headers),
+        available=set(plan.currencies),
+        default=plan.currency,
+    )
 
     base = UI_APP_URL.rstrip("/")
     try:
@@ -207,6 +237,7 @@ async def start_checkout(
             coupon=coupon,
             founder=founder,
             partner_code=partner,
+            currency=currency,
         )
     except Exception as e:
         reason = stripe_error_message(e)

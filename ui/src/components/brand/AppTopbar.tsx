@@ -18,6 +18,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { useI18n } from "@/i18n";
 
 import { CommandPalette } from "./CommandPalette";
+import { CurrencyMenu } from "./CurrencyMenu";
 import { LanguageMenu } from "./LanguageMenu";
 import { navItemFor } from "./nav";
 import { toggleTheme } from "./theme";
@@ -105,6 +106,7 @@ export function AppTopbar() {
             <CircleHelp className="h-4 w-4" />
           </a>
 
+          <CurrencyMenu />
           <LanguageMenu />
 
           <button

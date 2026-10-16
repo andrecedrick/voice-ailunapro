@@ -9,8 +9,28 @@ import { useI18n } from "@/i18n";
 import { errorDetail, growthApi, type PartnerStats } from "@/lib/ailunapro-api";
 
 const TXT = {
-  fr: { title: "Tableau de bord partenaire", signups: "Inscriptions avec votre code", active: "Clients actifs", mrr: "Revenu mensuel généré", com: "Votre commission mensuelle", rate: "Taux", bad: "Lien invalide." },
-  en: { title: "Partner dashboard", signups: "Sign-ups with your code", active: "Active customers", mrr: "Monthly revenue generated", com: "Your monthly commission", rate: "Rate", bad: "Invalid link." },
+  fr: {
+    title: "Tableau de bord partenaire",
+    signups: "Inscriptions avec votre code",
+    active: "Clients actifs",
+    mrr: "Revenu mensuel généré",
+    com: "Votre commission ce mois-ci",
+    earning: "Encore rémunérés",
+    bad: "Lien invalide.",
+    terms: (f: number, r: number, m: number) => `${f} % du 1er paiement, puis ${r} % pendant ${m} mois.`,
+    window: (n: number, total: number) => `${n} client(s) sur ${total} encore dans la fenêtre de ${total === n ? "" : ""}commission.`,
+  },
+  en: {
+    title: "Partner dashboard",
+    signups: "Sign-ups with your code",
+    active: "Active customers",
+    mrr: "Monthly revenue generated",
+    com: "Your commission this month",
+    earning: "Still earning",
+    bad: "Invalid link.",
+    terms: (f: number, r: number, m: number) => `${f}% of the first payment, then ${r}% for ${m} months.`,
+    window: (n: number, total: number) => `${n} of ${total} customers still inside the commission window.`,
+  },
 };
 
 function Dashboard() {
@@ -36,19 +56,16 @@ function Dashboard() {
   const tiles = [
     [t.signups, String(stats.signups)],
     [t.active, String(stats.active)],
+    [t.earning, `${stats.earning} / ${stats.active}`],
     [t.mrr, eur(stats.mrr_cents)],
-    [`${t.com} (${t.rate} ${stats.commission_pct} %)`, eur(stats.commission_cents)],
+    [t.com, eur(stats.commission_cents)],
   ];
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
       <h1 className="text-2xl font-semibold">{t.title} · <span className="font-mono">{stats.code}</span></h1>
-      {stats.tier_pct && stats.tier_min && stats.active < stats.tier_min ? (
-        <p className="text-sm text-muted-foreground">
-          {locale === "fr"
-            ? `Encore ${stats.tier_min - stats.active} client(s) actif(s) pour passer à ${stats.tier_pct} %.`
-            : `${stats.tier_min - stats.active} more active customer(s) to move up to ${stats.tier_pct}%.`}
-        </p>
-      ) : null}
+      <p className="text-sm text-muted-foreground">
+        {t.terms(stats.first_pct, stats.recurring_pct, stats.months)}
+      </p>
       <div className="grid gap-4 sm:grid-cols-2">
         {tiles.map(([label, value]) => (
           <div key={label} className="card-weave border p-5">

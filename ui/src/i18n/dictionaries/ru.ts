@@ -7,6 +7,7 @@ export const ru: Dict = {
   common: {
     support: "Поддержка",
     language: "Язык",
+    currency: "Валюта",
     theme: "Переключить светлую/тёмную тему",
     menu: "Открыть меню",
     collapse: "Свернуть боковую панель",

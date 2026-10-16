@@ -7,6 +7,7 @@ export const de: Dict = {
   common: {
     support: "Support",
     language: "Sprache",
+    currency: "Währung",
     theme: "Helles/dunkles Design umschalten",
     menu: "Menü öffnen",
     collapse: "Seitenleiste einklappen",
