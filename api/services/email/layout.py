@@ -18,6 +18,11 @@ from dataclasses import dataclass
 BRAND = "AiLunaPro Voice"
 SUPPORT = "service@ailunapro.com"
 SITE = "https://voice.ailunapro.com"
+# The wordmark, served from the app itself so there is one file to change.
+# Many clients block images by default, so the header degrades to the alt text
+# styled like the wordmark rather than to an empty box.
+LOGO = f"{SITE}/ailunapro-logo.png"
+LOGO_WIDTH = 168  # of a 475x79 wordmark
 
 # Mail clients that drop background-clip fall back to this flat cyan.
 _ACCENT = "#22D3EE"
@@ -132,7 +137,7 @@ def render(
 
 <tr><td class="al-pad" style="padding:34px 32px 0">
 <a href="{SITE}" style="text-decoration:none">
-<span style="font-size:19px;font-weight:800;letter-spacing:-.01em;color:{_ACCENT};background:linear-gradient(90deg,#8B5CF6,#22D3EE);-webkit-background-clip:text;background-clip:text">{BRAND}</span>
+<img src="{LOGO}" width="{LOGO_WIDTH}" alt="{BRAND}" style="display:block;width:{LOGO_WIDTH}px;max-width:70%;height:auto;border:0;outline:none;font-size:19px;font-weight:800;letter-spacing:-.01em;color:{_ACCENT};text-decoration:none">
 </a>
 </td></tr>
 
