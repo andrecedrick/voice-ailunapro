@@ -289,6 +289,50 @@ export type BatchRecordingUploadResponseSchema = {
 };
 
 /**
+ * BillingPaymentResponse
+ */
+export type BillingPaymentResponse = {
+    /**
+     * Payment Order Id
+     */
+    payment_order_id: number;
+    /**
+     * Paid At
+     */
+    paid_at: string;
+    /**
+     * Amount Minor
+     */
+    amount_minor: number;
+    /**
+     * Currency
+     */
+    currency: string;
+    /**
+     * Gateway Payment Id
+     */
+    gateway_payment_id?: string | null;
+    /**
+     * Invoice Number
+     */
+    invoice_number?: string | null;
+    /**
+     * Invoice Status
+     */
+    invoice_status: 'issued' | 'pending' | 'unavailable';
+};
+
+/**
+ * BillingPaymentsResponse
+ */
+export type BillingPaymentsResponse = {
+    /**
+     * Payments
+     */
+    payments: Array<BillingPaymentResponse>;
+};
+
+/**
  * Body_transcribe_audio_api_v1_workflow_recordings_transcribe_post
  */
 export type BodyTranscribeAudioApiV1WorkflowRecordingsTranscribePost = {
@@ -1282,7 +1326,7 @@ export type CurrentUsageResponse = {
      */
     period_end: string;
     /**
-     * Used Voice AiLunaPro Tokens
+     * Used Dograh Tokens
      */
     used_dograh_tokens: number;
     /**
@@ -1356,7 +1400,7 @@ export type DailyUsageBreakdownResponse = {
      */
     total_cost_usd?: number | null;
     /**
-     * Total Voice AiLunaPro Tokens
+     * Total Dograh Tokens
      */
     total_dograh_tokens: number;
     /**
@@ -1382,7 +1426,7 @@ export type DailyUsageItem = {
      */
     cost_usd?: number | null;
     /**
-     * Voice AiLunaPro Tokens
+     * Dograh Tokens
      */
     dograh_tokens: number;
     /**
@@ -2237,7 +2281,7 @@ export type HttpApiConfig = {
     /**
      * Preset Parameters
      *
-     * Parameters injected by Voice AiLunaPro from fixed values or workflow context templates.
+     * Parameters injected by Dograh from fixed values or workflow context templates.
      */
     preset_parameters?: Array<PresetToolParameter> | null;
     /**
@@ -2333,7 +2377,7 @@ export type HttpTransferResolverConfig = {
     /**
      * Wait Message
      *
-     * Optional short message played while Voice AiLunaPro resolves routing.
+     * Optional short message played while Dograh resolves routing.
      */
     wait_message?: string | null;
     /**
@@ -2345,7 +2389,7 @@ export type HttpTransferResolverConfig = {
     /**
      * Preset Parameters
      *
-     * Parameters injected by Voice AiLunaPro from fixed values or workflow context templates.
+     * Parameters injected by Dograh from fixed values or workflow context templates.
      */
     preset_parameters?: Array<PresetToolParameter> | null;
 };
@@ -3181,7 +3225,7 @@ export type OrganizationPreferences = {
     /**
      * Disposition Mapping
      *
-     * Voice AiLunaPro disposition -> the code this organization uses for it. Applied when writing `gathered_context.mapped_call_disposition`, so webhooks, run filters, reports and external-PBX write-backs all read the organization's own vocabulary. Dispositions absent from the mapping pass through unchanged.
+     * Dograh disposition -> the code this organization uses for it. Applied when writing `gathered_context.mapped_call_disposition`, so webhooks, run filters, reports and external-PBX write-backs all read the organization's own vocabulary. Dispositions absent from the mapping pass through unchanged.
      */
     disposition_mapping?: {
         [key: string]: string;
@@ -3212,7 +3256,7 @@ export type OrganizationPreferencesResponse = {
     /**
      * Disposition Mapping
      *
-     * Voice AiLunaPro disposition -> the code this organization uses for it. Applied when writing `gathered_context.mapped_call_disposition`, so webhooks, run filters, reports and external-PBX write-backs all read the organization's own vocabulary. Dispositions absent from the mapping pass through unchanged.
+     * Dograh disposition -> the code this organization uses for it. Applied when writing `gathered_context.mapped_call_disposition`, so webhooks, run filters, reports and external-PBX write-backs all read the organization's own vocabulary. Dispositions absent from the mapping pass through unchanged.
      */
     disposition_mapping?: {
         [key: string]: string;
@@ -3465,7 +3509,7 @@ export type PlivoConfigurationRequest = {
 /**
  * PresetToolParameter
  *
- * A parameter injected by Voice AiLunaPro at runtime.
+ * A parameter injected by Dograh at runtime.
  */
 export type PresetToolParameter = {
     /**
@@ -5578,23 +5622,30 @@ export type TrafficVariantStats = {
  *
  * Most of how a handoff sounds is fixed: the caller hears a ringer while the
  * next agent is prepared. The handover line is configurable because it is
- * caller-facing and Voice AiLunaPro runs in more than one language, and so is whether
- * the next agent opens with its greeting, because an agent that greets
- * callers on its own number should not re-introduce itself mid-conversation.
+ * caller-facing and Dograh runs in more than one language, and so is how the
+ * next agent opens: an agent that greets callers on its own number should
+ * not re-introduce itself mid-conversation, and one that only ever answers
+ * handoffs needs a line of its own before it picks the conversation up.
  */
 export type TransferAgentConfig = {
     /**
      * Workflow Id
      *
-     * Id of the Voice AiLunaPro agent to transfer to. Must be in the same organization, and must not be a speech-to-speech agent.
+     * Id of the Dograh agent to transfer to. Must be in the same organization, and must not be a speech-to-speech agent.
      */
     workflow_id: number;
     /**
-     * Play Greeting
+     * Greeting Mode
      *
-     * Whether the destination agent opens with its Start Call greeting. When false, it skips the greeting and opens with a reply generated from the handover note, continuing the conversation instead of introducing itself.
+     * How the destination agent opens. 'start_greeting' plays its Start Call greeting and waits for the caller. 'continue' skips the greeting and opens with a reply generated from the handover note. 'introduce_and_continue' speaks the introduction in the destination's own voice and then opens with a generated reply, so the caller hears who picked up without having to repeat themselves.
      */
-    play_greeting?: boolean;
+    greeting_mode?: 'start_greeting' | 'continue' | 'introduce_and_continue';
+    /**
+     * Introduction
+     *
+     * What the destination agent says as it takes over, in its own voice, before its first generated reply. Required with greeting_mode 'introduce_and_continue' and not accepted otherwise. Supports template variables.
+     */
+    introduction?: string | null;
 };
 
 /**
@@ -5666,7 +5717,7 @@ export type TransferCallConfig = {
     /**
      * Call Disposition
      *
-     * Optional disposition to record after a successful transfer. When omitted, Voice AiLunaPro records its provider-specific transfer default.
+     * Optional disposition to record after a successful transfer. When omitted, Dograh records its provider-specific transfer default.
      */
     call_disposition?: string | null;
     /**
@@ -5799,7 +5850,7 @@ export type TrunkListResponse = {
  *
  * ``settings`` is the provider's own trunk schema (validated on write against
  * ``ProviderSpec.trunk_settings_cls``). The provider-side identifier is
- * Voice AiLunaPro's bookkeeping and is not exposed.
+ * Dograh's bookkeeping and is not exposed.
  */
 export type TrunkResponse = {
     /**
@@ -6061,7 +6112,7 @@ export type UsageHistoryResponse = {
      */
     runs: Array<WorkflowRunUsageResponse>;
     /**
-     * Total Voice AiLunaPro Tokens
+     * Total Dograh Tokens
      */
     total_dograh_tokens: number;
     /**
@@ -7035,7 +7086,7 @@ export type WorkflowRunUsageResponse = {
      */
     created_at: string;
     /**
-     * Voice AiLunaPro Token Usage
+     * Dograh Token Usage
      */
     dograh_token_usage: number;
     /**
@@ -13550,6 +13601,89 @@ export type CreateMpsCreditPurchaseUrlApiV1OrganizationsUsageMpsCreditsPurchaseU
 
 export type CreateMpsCreditPurchaseUrlApiV1OrganizationsUsageMpsCreditsPurchaseUrlPostResponse = CreateMpsCreditPurchaseUrlApiV1OrganizationsUsageMpsCreditsPurchaseUrlPostResponses[keyof CreateMpsCreditPurchaseUrlApiV1OrganizationsUsageMpsCreditsPurchaseUrlPostResponses];
 
+export type GetBillingPaymentsApiV1OrganizationsBillingPaymentsGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+        /**
+         * X-Api-Key
+         */
+        'X-API-Key'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/organizations/billing/payments';
+};
+
+export type GetBillingPaymentsApiV1OrganizationsBillingPaymentsGetErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetBillingPaymentsApiV1OrganizationsBillingPaymentsGetError = GetBillingPaymentsApiV1OrganizationsBillingPaymentsGetErrors[keyof GetBillingPaymentsApiV1OrganizationsBillingPaymentsGetErrors];
+
+export type GetBillingPaymentsApiV1OrganizationsBillingPaymentsGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: BillingPaymentsResponse;
+};
+
+export type GetBillingPaymentsApiV1OrganizationsBillingPaymentsGetResponse = GetBillingPaymentsApiV1OrganizationsBillingPaymentsGetResponses[keyof GetBillingPaymentsApiV1OrganizationsBillingPaymentsGetResponses];
+
+export type DownloadBillingInvoiceApiV1OrganizationsBillingInvoicesPaymentOrderIdPdfGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+        /**
+         * X-Api-Key
+         */
+        'X-API-Key'?: string | null;
+    };
+    path: {
+        /**
+         * Payment Order Id
+         */
+        payment_order_id: number;
+    };
+    query?: never;
+    url: '/api/v1/organizations/billing/invoices/{payment_order_id}/pdf';
+};
+
+export type DownloadBillingInvoiceApiV1OrganizationsBillingInvoicesPaymentOrderIdPdfGetErrors = {
+    /**
+     * Not found
+     */
+    404: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DownloadBillingInvoiceApiV1OrganizationsBillingInvoicesPaymentOrderIdPdfGetError = DownloadBillingInvoiceApiV1OrganizationsBillingInvoicesPaymentOrderIdPdfGetErrors[keyof DownloadBillingInvoiceApiV1OrganizationsBillingInvoicesPaymentOrderIdPdfGetErrors];
+
+export type DownloadBillingInvoiceApiV1OrganizationsBillingInvoicesPaymentOrderIdPdfGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: Blob | File;
+};
+
+export type DownloadBillingInvoiceApiV1OrganizationsBillingInvoicesPaymentOrderIdPdfGetResponse = DownloadBillingInvoiceApiV1OrganizationsBillingInvoicesPaymentOrderIdPdfGetResponses[keyof DownloadBillingInvoiceApiV1OrganizationsBillingInvoicesPaymentOrderIdPdfGetResponses];
+
 export type GetUsageHistoryApiV1OrganizationsUsageRunsGetData = {
     body?: never;
     headers?: {
@@ -16011,9 +16145,9 @@ export type ActiveCallsApiV1HealthActiveCallsGetData = {
     body?: never;
     headers?: {
         /**
-         * X-Voice AiLunaPro-Devops-Secret
+         * X-Dograh-Devops-Secret
          */
-        'X-Voice AiLunaPro-Devops-Secret'?: string | null;
+        'X-Dograh-Devops-Secret'?: string | null;
     };
     path?: never;
     query?: never;
@@ -16046,9 +16180,9 @@ export type AutoscaleMetricApiV1HealthAutoscaleMetricGetData = {
     body?: never;
     headers?: {
         /**
-         * X-Voice AiLunaPro-Devops-Secret
+         * X-Dograh-Devops-Secret
          */
-        'X-Voice AiLunaPro-Devops-Secret'?: string | null;
+        'X-Dograh-Devops-Secret'?: string | null;
     };
     path?: never;
     query?: {

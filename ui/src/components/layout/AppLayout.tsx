@@ -69,8 +69,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   // Check if current route should have sidebar
   // Hide sidebar for root (/), /handler routes (Stack Auth routes), /auth routes,
-  // and /pricing — the public pricing page carries its own full-page chrome.
-  const shouldShowSidebar = pathname !== "/" && !pathname.startsWith("/handler") && !pathname.startsWith("/auth") && !pathname.startsWith("/pricing");
+  // /pricing — the public pricing page carries its own full-page chrome — and
+  // /get-service-key, which upstream renders standalone.
+  const shouldShowSidebar = pathname !== "/" && !pathname.startsWith("/handler") && !pathname.startsWith("/auth") && !pathname.startsWith("/pricing") && !pathname.startsWith("/get-service-key");
 
   // Only match the exact editor page /workflow/<id>, not sub-routes like /workflow/<id>/runs
   const isWorkflowEditor = /^\/workflow\/\d+$/.test(pathname);
